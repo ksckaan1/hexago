@@ -1,4 +1,4 @@
-# hexago
+![Hexago](doc/hexago.png)
 
 ## Installation
 
