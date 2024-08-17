@@ -1,4 +1,4 @@
-package projectservice
+package project
 
 import (
 	"bytes"
@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 )
 
-func (*ProjectService) createProjectDir(dirParam string) (string, error) {
+func (*Project) createProjectDir(dirParam string) (string, error) {
 	projectPath, err := filepath.Abs(dirParam)
 	if err != nil {
 		return "", fmt.Errorf("filepath: abs: %w", err)
@@ -50,7 +52,7 @@ func (*ProjectService) createProjectDir(dirParam string) (string, error) {
 	return projectPath, nil
 }
 
-func (*ProjectService) createHexagoConfigs(projectPath string) error {
+func (*Project) createHexagoConfigs(projectPath string) error {
 	hexagoDir := filepath.Join(projectPath, ".hexago")
 
 	err := os.MkdirAll(hexagoDir, 0o755)
@@ -68,7 +70,7 @@ func (*ProjectService) createHexagoConfigs(projectPath string) error {
 	return nil
 }
 
-func (*ProjectService) initGoModule(ctx context.Context, moduleName string) error {
+func (*Project) initGoModule(ctx context.Context, moduleName string) error {
 	cmd := exec.CommandContext(ctx, "go", "mod", "init", moduleName)
 	stdErr := &bytes.Buffer{}
 	cmd.Stderr = stdErr
@@ -81,20 +83,20 @@ func (*ProjectService) initGoModule(ctx context.Context, moduleName string) erro
 	return nil
 }
 
-func (*ProjectService) createProjectSubDirs() error {
+func (*Project) createProjectSubDirs() error {
 	dirs := []string{
-		"cmd/",
-		"internal/domain/core/application/",
-		"internal/domain/core/dto/",
-		"internal/domain/core/model/",
-		"internal/domain/core/port/",
-		"internal/domain/core/service/",
-		"internal/infrastructure/repository/",
-		"internal/util/",
-		"config/",
-		"schemas/",
-		"scripts/",
-		"doc/",
+		"cmd",
+		filepath.Join("internal", "domain", "core", "application"),
+		filepath.Join("internal", "domain", "core", "dto"),
+		filepath.Join("internal", "domain", "core", "model"),
+		filepath.Join("internal", "domain", "core", "port"),
+		filepath.Join("internal", "domain", "core", "service"),
+		filepath.Join("internal", "infrastructure", "repository"),
+		filepath.Join("internal", "util"),
+		"config",
+		"schemas",
+		"scripts",
+		"doc",
 	}
 
 	for i := range dirs {
@@ -104,5 +106,49 @@ func (*ProjectService) createProjectSubDirs() error {
 		}
 	}
 
+	return nil
+}
+
+func (p *Project) isDomainExist(ctx context.Context, targetDomain string) error {
+	domains, err := p.GetAllDomains(ctx)
+	if err != nil {
+		return fmt.Errorf("get all domains: %w", err)
+	}
+
+	if !slices.Contains(domains, targetDomain) {
+		return fmt.Errorf("target domain not found: %s", targetDomain)
+	}
+
+	return nil
+}
+
+func (p *Project) isServiceExist(ctx context.Context, targetDomain, targetService string) error {
+	services, err := p.GetAllServices(ctx, targetDomain)
+	if err != nil {
+		return fmt.Errorf("get all services: %w", err)
+	}
+
+	if !slices.Contains(services, targetService) {
+		return fmt.Errorf("target service not found: %s", targetService)
+	}
+
+	return nil
+}
+
+var serviceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]{0,}$`)
+
+func (*Project) validateServiceName(serviceName string) error {
+	if !serviceNameRgx.MatchString(serviceName) {
+		return fmt.Errorf("invalid service name: %s, service name must be PascalCase", serviceName)
+	}
+	return nil
+}
+
+var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
+
+func (*Project) validatePkgName(pkgName string) error {
+	if !pkgNameRgx.MatchString(pkgName) {
+		return fmt.Errorf("invalid package name: %s, package name must be lowercase", pkgName)
+	}
 	return nil
 }

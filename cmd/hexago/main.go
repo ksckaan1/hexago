@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -15,9 +17,15 @@ func main() {
 	ctx := context.Background()
 
 	i := do.New()
-	do.Provide(i, cli.NewCLI)
+	do.Provide(i, cli.New)
 	do.Provide(i, cli.NewRootCommand)
 	do.Provide(i, cli.NewInitCommand)
+	do.Provide(i, domaincmd.NewDomainCommand)
+	do.Provide(i, domaincmd.NewDomainLSCommand)
+	do.Provide(i, domaincmd.NewDomainCreateCommand)
+	do.Provide(i, servicecmd.NewServiceCommand)
+	do.Provide(i, servicecmd.NewServiceLSCommand)
+	do.Provide(i, servicecmd.NewServiceCreateCommand)
 	do.Provide(i, projectservice.New)
 
 	c, err := do.Invoke[*cli.CLI](i)

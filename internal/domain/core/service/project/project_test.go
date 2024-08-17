@@ -1,4 +1,4 @@
-package projectservice
+package project
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func TestInitNewProject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			projectService := &ProjectService{}
+			projectService := &Project{}
 
 			projectDir := filepath.Join(t.TempDir(), "my-project")
 
@@ -48,6 +48,54 @@ func TestInitNewProject(t *testing.T) {
 			)
 
 			tt.want.err(t, err)
+		})
+	}
+}
+
+func TestGetAllDomains(t *testing.T) {
+	type args struct {
+		ctx func() context.Context
+	}
+	type want struct {
+		domains []string
+		err     require.ErrorAssertionFunc
+	}
+
+	tests := []struct {
+		name string
+		args
+		want
+	}{
+		{
+			name: "valid1",
+			args: args{
+				ctx: context.Background,
+			},
+			want: want{
+				domains: []string{"core"},
+				err:     require.NoError,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			projectService := &Project{}
+
+			projectDir := filepath.Join(t.TempDir(), "my-project")
+
+			err := projectService.InitNewProject(
+				tt.args.ctx(),
+				dto.InitNewProjectParams{
+					ProjectDirectory: projectDir,
+					ModuleName:       "my-project",
+				},
+			)
+			require.NoError(t, err)
+
+			domains, err := projectService.GetAllDomains(tt.args.ctx())
+			tt.want.err(t, err)
+			require.Equal(t, tt.want.domains, domains)
 		})
 	}
 }
