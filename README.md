@@ -3,5 +3,5 @@
 ## Installation
 
 ```sh
-go install github.com/ksckaan1/cmd/hexago
+go install github.com/ksckaan1/hexago/cmd/hexago
 ```
