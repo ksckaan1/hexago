@@ -16,8 +16,10 @@ type ServiceCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
 	// flags
-	flagDomain  *string
-	flagPkgName *string
+	flagDomain     *string
+	flagPkgName    *string
+	flagPortName   *string
+	flagSelectPort *bool
 }
 
 func NewServiceCreateCommand(i *do.Injector) (*ServiceCreateCommand, error) {
@@ -49,6 +51,8 @@ func (c *ServiceCreateCommand) init() {
 	c.cmd.RunE = c.runner
 	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service new ServiceName -d core")
 	c.flagPkgName = c.cmd.Flags().StringP("pkg-name", "p", "", "hexago service new ServiceName -p servicename")
+	c.flagPortName = c.cmd.Flags().StringP("implement", "i", "", "hexago service new ServiceName -i core:Example")
+	c.flagSelectPort = c.cmd.Flags().BoolP("select-port", "s", false, "hexago service new ServiceName -s")
 }
 
 func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -103,7 +107,43 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
-	serviceFile, err := projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName)
+	if *c.flagSelectPort {
+		allPorts := make([]string, 0)
+
+		for i := range domains {
+			ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
+			if err != nil {
+				return fmt.Errorf("get all ports: %w", err)
+			}
+			for j := range ports {
+				allPorts = append(allPorts, domains[i]+":"+ports[j])
+			}
+		}
+
+		selectPortList := []huh.Option[string]{
+			huh.NewOption[string]("Do not implement!", ""),
+		}
+
+		selectPortList = append(selectPortList, lo.Map(allPorts, func(d string, _ int) huh.Option[string] {
+			return huh.NewOption(d, d)
+		})...)
+
+		err2 := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Select a port.").
+					Options(
+						selectPortList...,
+					).
+					Value(c.flagPortName),
+			).WithShowHelp(true),
+		).Run()
+		if err != nil {
+			return fmt.Errorf("select a port: %w", err2)
+		}
+	}
+
+	serviceFile, err := projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName, *c.flagPortName)
 	if err != nil {
 		return fmt.Errorf("project service: create service: %w", err)
 	}

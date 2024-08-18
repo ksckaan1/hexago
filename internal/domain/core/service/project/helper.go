@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,9 @@ import (
 	"slices"
 	"strings"
 	"text/template"
+
+	"github.com/samber/lo"
+	"golang.org/x/mod/modfile"
 )
 
 func (*Project) createProjectDir(dirParam string) (string, error) {
@@ -77,27 +81,6 @@ func (*Project) createHexagoConfigs(projectPath string) error {
 	err = os.MkdirAll(templatesPath, 0o755)
 	if err != nil {
 		return fmt.Errorf("os: mkdir all: %w", err)
-	}
-
-	// create default templates
-	templates := []string{
-		"std_application.tmpl",
-		"std_service.tmpl",
-		"do_application.tmpl",
-		"do_service.tmpl",
-	}
-
-	for i := range templates {
-		tmpl, err2 := assets.ReadFile(fmt.Sprintf("assets/%s", templates[i]))
-		if err2 != nil {
-			return fmt.Errorf("assets: read file: %w", err2)
-		}
-
-		tmplPath := filepath.Join(templatesPath, templates[i])
-		err = os.WriteFile(tmplPath, tmpl, 0o644)
-		if err != nil {
-			return fmt.Errorf("os: write file: %w", err)
-		}
 	}
 
 	return nil
@@ -186,20 +169,28 @@ func (*Project) validatePkgName(pkgName string) error {
 	return nil
 }
 
-func (p *Project) generateServiceFile(servicePath, serviceName, pkgName string) (string, error) {
+func (p *Project) generateServiceFile(ctx context.Context, targetDomain, servicePath, serviceName, pkgName, portParam string) (string, error) {
 	serviceFile := filepath.Join(servicePath, fmt.Sprintf("%s.go", pkgName))
 
-	serviceTemplatePath := filepath.Join(".hexago", "templates", fmt.Sprintf("%s_service.tmpl", p.cfg.GetServiceTemplate()))
-
-	serviceTemplate, err := template.ParseFiles(serviceTemplatePath)
+	portName, portDomain, portPath, implementation, err := p.generateImplementation(ctx, targetDomain, serviceName, portParam)
 	if err != nil {
-		return "", fmt.Errorf("template: parse files: %w", err)
+		return "", fmt.Errorf("generate implementation: %w", err)
+	}
+
+	serviceTemplate, err := p.parseTemplate(p.cfg.GetServiceTemplate(), "service")
+	if err != nil {
+		return "", fmt.Errorf("parse template: %w", err)
 	}
 
 	buf := &bytes.Buffer{}
 	err = serviceTemplate.Execute(buf, map[string]any{
-		"ServiceName": serviceName,
-		"PkgName":     pkgName,
+		"ServiceName":        serviceName,
+		"PkgName":            pkgName,
+		"PortImplementation": implementation,
+		"PortDomain":         portDomain,
+		"TargetDomain":       targetDomain,
+		"PortPath":           portPath,
+		"PortName":           portName,
 	})
 	if err != nil {
 		return "", fmt.Errorf("template: execute: %w", err)
@@ -211,4 +202,133 @@ func (p *Project) generateServiceFile(servicePath, serviceName, pkgName string) 
 	}
 
 	return serviceFile, nil
+}
+
+func (p *Project) parseTemplate(templateMode, templateName string) (*template.Template, error) {
+	switch templateMode {
+	case "std", "do":
+		f, err := assets.ReadFile(fmt.Sprintf("assets/templates/%s_%s.tmpl", templateMode, templateName))
+		if err != nil {
+			return nil, fmt.Errorf("assets: read file: %w", err)
+		}
+
+		tmpl, err := template.New("").Parse(string(f))
+		if err != nil {
+			return nil, fmt.Errorf("template: parse: %w", err)
+		}
+
+		return tmpl, nil
+	default:
+		templatePath := filepath.Join(".hexago", "templates", fmt.Sprintf("%s_%s.tmpl", templateMode, templateName))
+
+		tmpl, err := template.ParseFiles(templatePath)
+		if err != nil {
+			return nil, fmt.Errorf("template: parse files: %w", err)
+		}
+
+		return tmpl, nil
+	}
+
+}
+
+var rgxInterfaces = regexp.MustCompile(`(?m)^type\s([A-Z][a-zA-Z0-9]+)\sinterface`)
+
+func (p *Project) parseInterfaces(interfaceFile string) ([]string, error) {
+	f, err := os.Open(interfaceFile)
+	if err != nil {
+		return nil, fmt.Errorf("os: open: %w", err)
+	}
+	defer f.Close()
+
+	buf := &bytes.Buffer{}
+
+	_, err = io.Copy(buf, f)
+	if err != nil {
+		return nil, fmt.Errorf("io: copy: %w", err)
+	}
+
+	submatches := rgxInterfaces.FindAllSubmatch(buf.Bytes(), -1)
+
+	interfaces := lo.Map(submatches, func(m [][]byte, _ int) string {
+		return string(m[1])
+	})
+
+	return interfaces, nil
+}
+
+type PortValue struct {
+	Name   string
+	Domain string
+}
+
+var rgxDomainPort = regexp.MustCompile(`^([a-z][a-z0-9]{0,}):([A-Z][\w]{0,})$`)
+
+var rgxPort = regexp.MustCompile(`^([A-Z][\w]{0,})$`)
+
+func (*Project) getPort(targetDomain, portName string) (*PortValue, error) {
+	if portName == "" {
+		return &PortValue{}, nil
+	}
+
+	for _, sm := range rgxDomainPort.FindAllStringSubmatch(portName, -1) {
+		return &PortValue{
+			Name:   sm[2],
+			Domain: sm[1],
+		}, nil
+	}
+
+	if !rgxPort.MatchString(portName) {
+		return nil, fmt.Errorf("invalid port name: %s", portName)
+	}
+
+	return &PortValue{
+		Name:   portName,
+		Domain: targetDomain,
+	}, nil
+}
+
+func (p *Project) generateImplementation(ctx context.Context, targetDomain, serviceName, portParam string) (portName, portDomain, portPath, implementation string, err error) {
+	portValue, err := p.getPort(targetDomain, portParam)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("get port: %w", err)
+	}
+
+	if portValue.Name == "" {
+		return "", "", "", "", nil
+	}
+
+	f, err := os.Open("go.mod")
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("module file not found: go.mod")
+	}
+	defer f.Close()
+
+	buf := &bytes.Buffer{}
+
+	_, err = io.Copy(buf, f)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("io: copy: %w", err)
+	}
+
+	modFile, err := modfile.Parse("go.mod", buf.Bytes(), nil)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("modfile parse: %w", err)
+	}
+
+	portPath = filepath.Join(modFile.Module.Mod.Path, "internal", "domain", portValue.Domain, "port")
+
+	cmd := exec.CommandContext(ctx,
+		"impl",
+		fmt.Sprintf("%s *%s", strings.ToLower(string(serviceName[0])), serviceName),
+		fmt.Sprintf("%s.%s", portPath, portValue.Name),
+	)
+	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	cmd.Stdout, cmd.Stderr = stdOut, stdErr
+
+	err = cmd.Run()
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("impl: %s", stdErr.String())
+	}
+
+	return portValue.Name, portValue.Domain, portPath, stdOut.String(), nil
 }

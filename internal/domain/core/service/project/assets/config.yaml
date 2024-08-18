@@ -1,3 +1,2 @@
 templates:
   service: std # std | do | <custom>
-  application: std # std | do | <custom>

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/samber/do"
 	"github.com/spf13/cobra"
@@ -23,6 +24,8 @@ type CLI struct {
 	serviceCmd       *servicecmd.ServiceCommand
 	serviceLSCmd     *servicecmd.ServiceLSCommand
 	serviceCreateCmd *servicecmd.ServiceCreateCommand
+	portCmd          *portcmd.PortCommand
+	portLSCmd        *portcmd.PortLSCommand
 }
 
 func New(i *do.Injector) (*CLI, error) {
@@ -35,6 +38,8 @@ func New(i *do.Injector) (*CLI, error) {
 		serviceCmd:       do.MustInvoke[*servicecmd.ServiceCommand](i),
 		serviceLSCmd:     do.MustInvoke[*servicecmd.ServiceLSCommand](i),
 		serviceCreateCmd: do.MustInvoke[*servicecmd.ServiceCreateCommand](i),
+		portCmd:          do.MustInvoke[*portcmd.PortCommand](i),
+		portLSCmd:        do.MustInvoke[*portcmd.PortLSCommand](i),
 	}, nil
 }
 
@@ -46,6 +51,8 @@ func (c *CLI) Run(ctx context.Context) error {
 	c.rootCmd.AddCommand(c.serviceCmd)
 	c.serviceCmd.AddCommand(c.serviceLSCmd)
 	c.serviceCmd.AddCommand(c.serviceCreateCmd)
+	c.rootCmd.AddCommand(c.portCmd)
+	c.portCmd.AddCommand(c.portLSCmd)
 
 	err := c.rootCmd.Execute(ctx)
 	if err != nil {

@@ -148,21 +148,22 @@ func (p *Project) GetAllPorts(ctx context.Context, targetDomain string) ([]strin
 
 	portsPath := filepath.Join("internal", "domain", targetDomain, "port")
 
-	portCandidatePaths, err := filepath.Glob(filepath.Join(portsPath, "*"))
+	portFilePaths, err := filepath.Glob(filepath.Join(portsPath, "*.go"))
 	if err != nil {
 		return nil, fmt.Errorf("filepath: glob: %w", err)
 	}
 
-	portPaths := lo.Filter(portCandidatePaths, func(d string, _ int) bool {
-		stat, err2 := os.Stat(d)
-		return err2 == nil && !stat.IsDir()
-	})
+	allPorts := make([]string, 0)
+	for i := range portFilePaths {
+		ports, err2 := p.parseInterfaces(portFilePaths[i])
+		if err2 != nil {
+			return nil, fmt.Errorf("parse interfaces: %w", err2)
+		}
 
-	ports := lo.Map(portPaths, func(d string, _ int) string {
-		return filepath.Base(d)
-	})
+		allPorts = append(allPorts, ports...)
+	}
 
-	return ports, nil
+	return allPorts, nil
 }
 
 func (p *Project) GetAllServices(ctx context.Context, targetDomain string) ([]string, error) {
@@ -190,7 +191,7 @@ func (p *Project) GetAllServices(ctx context.Context, targetDomain string) ([]st
 	return services, nil
 }
 
-func (p *Project) CreateService(ctx context.Context, targetDomain, serviceName, pkgName string) (string, error) {
+func (p *Project) CreateService(ctx context.Context, targetDomain, serviceName, pkgName, portName string) (string, error) {
 	err := p.isDomainExist(ctx, targetDomain)
 	if err != nil {
 		return "", fmt.Errorf("is domain exist: %w", err)
@@ -222,11 +223,14 @@ func (p *Project) CreateService(ctx context.Context, targetDomain, serviceName, 
 		return "", fmt.Errorf("os: mkdir all: %w", err)
 	}
 
-	serviceFile, err := p.generateServiceFile(servicePath, serviceName, pkgName)
+	serviceFile, err := p.generateServiceFile(ctx, targetDomain, servicePath, serviceName, pkgName, portName)
 	if err != nil {
+		err2 := os.RemoveAll(servicePath)
+		if err2 != nil {
+			return "", fmt.Errorf("os: remove all: %w", err2)
+		}
 		return "", fmt.Errorf("generate service file: %w", err)
 	}
-	// TODO: implement a port for the generated service
 
 	return serviceFile, nil
 }
