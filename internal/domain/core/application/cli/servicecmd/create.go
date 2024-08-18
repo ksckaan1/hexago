@@ -57,6 +57,16 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invoke project service: %w", err)
 	}
 
+	cfg, err := do.Invoke[port.ConfigService](c.injector)
+	if err != nil {
+		return fmt.Errorf("invoke config service: %w", err)
+	}
+
+	err = cfg.Load(".hexago/config.yaml")
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
 		return fmt.Errorf("project service: get all domains: %w", err)
@@ -75,12 +85,16 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 				return huh.NewOption(d, d)
 			})
 
-			err2 := huh.NewSelect[string]().
-				Title("Select a domain.").
-				Options(
-					selectList...,
-				).
-				Value(c.flagDomain).Run()
+			err2 := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Select a domain.").
+						Options(
+							selectList...,
+						).
+						Value(c.flagDomain),
+				).WithShowHelp(true),
+			).Run()
 			if err2 != nil {
 				return fmt.Errorf("select a domain: %w", err2)
 			}
@@ -89,13 +103,13 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
-	err = projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName)
+	serviceFile, err := projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName)
 	if err != nil {
 		return fmt.Errorf("project service: create service: %w", err)
 	}
 
 	fmt.Println("")
-	util.UILog(util.Success, "service created")
+	util.UILog(util.Success, "service created\n"+serviceFile)
 	fmt.Println("")
 
 	return nil

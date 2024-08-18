@@ -1,0 +1,11 @@
+package {{.PkgName}}
+
+import (
+  "github.com/samber/do"
+)
+
+type {{.ServiceName}} struct {}
+
+func New(i *do.Injector) (*{{.ServiceName}}, error) {
+  return &{{.ServiceName}}{}, nil
+}

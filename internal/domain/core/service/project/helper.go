@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"text/template"
 )
 
 func (*Project) createProjectDir(dirParam string) (string, error) {
@@ -62,9 +63,41 @@ func (*Project) createHexagoConfigs(projectPath string) error {
 
 	configPath := filepath.Join(hexagoDir, "config.yaml")
 
-	err = os.WriteFile(configPath, nil, 0o644)
+	configContent, err := assets.ReadFile("assets/config.yaml")
+	if err != nil {
+		return fmt.Errorf("assets: read file: %w", err)
+	}
+
+	err = os.WriteFile(configPath, configContent, 0o644)
 	if err != nil {
 		return fmt.Errorf("os: write file: %w", err)
+	}
+
+	templatesPath := filepath.Join(hexagoDir, "templates")
+	err = os.MkdirAll(templatesPath, 0o755)
+	if err != nil {
+		return fmt.Errorf("os: mkdir all: %w", err)
+	}
+
+	// create default templates
+	templates := []string{
+		"std_application.tmpl",
+		"std_service.tmpl",
+		"do_application.tmpl",
+		"do_service.tmpl",
+	}
+
+	for i := range templates {
+		tmpl, err2 := assets.ReadFile(fmt.Sprintf("assets/%s", templates[i]))
+		if err2 != nil {
+			return fmt.Errorf("assets: read file: %w", err2)
+		}
+
+		tmplPath := filepath.Join(templatesPath, templates[i])
+		err = os.WriteFile(tmplPath, tmpl, 0o644)
+		if err != nil {
+			return fmt.Errorf("os: write file: %w", err)
+		}
 	}
 
 	return nil
@@ -151,4 +184,31 @@ func (*Project) validatePkgName(pkgName string) error {
 		return fmt.Errorf("invalid package name: %s, package name must be lowercase", pkgName)
 	}
 	return nil
+}
+
+func (p *Project) generateServiceFile(servicePath, serviceName, pkgName string) (string, error) {
+	serviceFile := filepath.Join(servicePath, fmt.Sprintf("%s.go", pkgName))
+
+	serviceTemplatePath := filepath.Join(".hexago", "templates", fmt.Sprintf("%s_service.tmpl", p.cfg.GetServiceTemplate()))
+
+	serviceTemplate, err := template.ParseFiles(serviceTemplatePath)
+	if err != nil {
+		return "", fmt.Errorf("template: parse files: %w", err)
+	}
+
+	buf := &bytes.Buffer{}
+	err = serviceTemplate.Execute(buf, map[string]any{
+		"ServiceName": serviceName,
+		"PkgName":     pkgName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("template: execute: %w", err)
+	}
+
+	err = os.WriteFile(serviceFile, buf.Bytes(), 0o644)
+	if err != nil {
+		return "", fmt.Errorf("os: write file: %w", err)
+	}
+
+	return serviceFile, nil
 }

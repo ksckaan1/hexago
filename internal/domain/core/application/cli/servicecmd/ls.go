@@ -80,12 +80,16 @@ func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
 				return huh.NewOption(d, d)
 			})...)
 
-			err2 := huh.NewSelect[string]().
-				Title("Select a domain.").
-				Options(
-					selectList...,
-				).
-				Value(c.flagDomain).Run()
+			err2 := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Select a domain.").
+						Options(
+							selectList...,
+						).
+						Value(c.flagDomain),
+				).WithShowHelp(true),
+			).Run()
 			if err2 != nil {
 				return fmt.Errorf("select a domain: %w", err2)
 			}

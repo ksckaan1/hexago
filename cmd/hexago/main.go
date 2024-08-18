@@ -8,6 +8,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -27,6 +28,7 @@ func main() {
 	do.Provide(i, servicecmd.NewServiceLSCommand)
 	do.Provide(i, servicecmd.NewServiceCreateCommand)
 	do.Provide(i, projectservice.New)
+	do.Provide(i, config.New)
 
 	c, err := do.Invoke[*cli.CLI](i)
 	if err != nil {

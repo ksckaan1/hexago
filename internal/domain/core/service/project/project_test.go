@@ -99,3 +99,10 @@ func TestGetAllDomains(t *testing.T) {
 		})
 	}
 }
+
+func TestAssets(t *testing.T) {
+	content, err := assets.ReadFile("assets/config.yaml")
+	require.NoError(t, err)
+
+	t.Log(string(content))
+}
