@@ -23,7 +23,7 @@ func New(i *do.Injector) (port.ConfigService, error) {
 func (c *Config) Load(cfgPath string) error {
 	cfgFile, err := os.Open(cfgPath)
 	if err != nil {
-		return fmt.Errorf("os: open: %w", err)
+		return fmt.Errorf("config file not found: %s", cfgPath)
 	}
 	defer cfgFile.Close()
 
