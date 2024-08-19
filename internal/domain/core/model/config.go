@@ -5,6 +5,7 @@ type Config struct {
 }
 
 type Templates struct {
-	Service     string `yaml:"service"`
-	Application string `yaml:"application"`
+	Service        string `yaml:"service"`
+	Application    string `yaml:"application"`
+	Infrastructure string `yaml:"infrastructure"`
 }

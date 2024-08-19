@@ -148,3 +148,18 @@ func TestParseGoMod(t *testing.T) {
 
 	t.Log(modFile.Module.Mod.Path)
 }
+
+func TestParseDefaultModuleName(t *testing.T) {
+	defaultName := "."
+
+	if defaultName == "." {
+		abs, err := filepath.Abs(defaultName)
+		if err != nil {
+			require.NoError(t, err)
+		}
+
+		defaultName = filepath.Base(abs)
+	}
+
+	t.Log(defaultName)
+}

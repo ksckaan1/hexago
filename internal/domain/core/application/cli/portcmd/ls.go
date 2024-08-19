@@ -25,7 +25,7 @@ func NewPortLSCommand(i *do.Injector) (*PortLSCommand, error) {
 	return &PortLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
-			Example: "hexago port ls -d core\nhexago port ls (select domain interatively)",
+			Example: "hexago port ls -d <domainname>\nhexago port ls (select domain interactively)",
 			Short:   "List ports",
 			Long:    `List ports`,
 		},
@@ -50,7 +50,7 @@ func (c *PortLSCommand) AddCommand(cmds ...Commander) {
 func (c *PortLSCommand) init() {
 	c.cmd.RunE = c.runner
 	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago domain ls -l")
-	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d core")
+	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d <domainname>")
 }
 
 func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {

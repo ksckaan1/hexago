@@ -1,16 +1,22 @@
 package {{.PkgName}}
 
-import (
+{{ if ne .PortPath ""}}import (
   "github.com/samber/do"
-  {{ if ne .PortPath ""}}{{ if ne .TargetDomain .PortDomain}}{{.PortDomain}}port {{end}}"{{.PortPath}}"{{end}}
+  {{ if ne .TargetDomain .PortDomain}}{{.PortDomain}}port {{end}}"{{.PortPath}}"
 )
 
-{{ if ne .PortPath ""}}var _ {{if ne .PortDomain .TargetDomain}}{{.PortDomain}}{{end}}port.{{.PortName}} = (*{{.ServiceName}})(nil){{end}}
+var _ {{if ne .PortDomain .TargetDomain}}{{.PortDomain}}{{end}}port.{{.PortName}} = (*{{.ServiceName}})(nil)
 
 type {{.ServiceName}} struct {}
 
 func New(i *do.Injector) (*{{.ServiceName}}, error) {
   return &{{.ServiceName}}{}, nil
-}
+}{{else}}import "github.com/samber/do"
 
-{{ if ne .PortImplementation "" }}{{ .PortImplementation }}{{end}}
+type {{.ServiceName}} struct {}
+
+func New(i *do.Injector) (*{{.ServiceName}}, error) {
+  return &{{.ServiceName}}{}, nil
+}{{end}}
+{{ if ne .PortImplementation "" }}
+{{ .PortImplementation }}{{end}}

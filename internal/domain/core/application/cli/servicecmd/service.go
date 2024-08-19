@@ -20,7 +20,6 @@ func NewServiceCommand(i *do.Injector) (*ServiceCommand, error) {
 		cmd: &cobra.Command{
 			Use:     "service",
 			Example: "hexago service",
-			Aliases: []string{"s"},
 			Short:   "Service processes",
 			Long:    `Service processes`,
 		},

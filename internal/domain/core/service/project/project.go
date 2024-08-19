@@ -120,6 +120,50 @@ func (p *Project) GetAllApplications(ctx context.Context, targetDomain string) (
 	return applications, nil
 }
 
+func (p *Project) CreateApplication(ctx context.Context, targetDomain, applicationName, pkgName, portName string) (string, error) {
+	err := p.isDomainExist(ctx, targetDomain)
+	if err != nil {
+		return "", fmt.Errorf("is domain exist: %w", err)
+	}
+
+	err = p.validateInstanceName("application", applicationName)
+	if err != nil {
+		return "", fmt.Errorf("validate instance name: %w", err)
+	}
+
+	if pkgName == "" {
+		pkgName = strings.ToLower(applicationName)
+	}
+
+	err = p.validatePkgName(pkgName)
+	if err != nil {
+		return "", fmt.Errorf("validate pkg name: %w", err)
+	}
+
+	err = p.isApplicationExist(ctx, targetDomain, pkgName)
+	if err == nil {
+		return "", fmt.Errorf("application already exist: %s in %s", pkgName, targetDomain)
+	}
+
+	applicationPath := filepath.Join("internal", "domain", targetDomain, "application", pkgName)
+
+	err = os.MkdirAll(applicationPath, 0o755)
+	if err != nil {
+		return "", fmt.Errorf("os: mkdir all: %w", err)
+	}
+
+	applicationFile, err := p.generateServiceFile(ctx, targetDomain, applicationPath, applicationName, pkgName, portName)
+	if err != nil {
+		err2 := os.RemoveAll(applicationPath)
+		if err2 != nil {
+			return "", fmt.Errorf("os: remove all: %w", err2)
+		}
+		return "", fmt.Errorf("generate application file: %w", err)
+	}
+
+	return applicationFile, nil
+}
+
 func (p *Project) GetAllEntryPoints(ctx context.Context) ([]string, error) {
 	cmdLocation := filepath.Join("cmd")
 
@@ -138,6 +182,39 @@ func (p *Project) GetAllEntryPoints(ctx context.Context) ([]string, error) {
 	})
 
 	return cmds, nil
+}
+
+func (p *Project) CreateEntryPoint(ctx context.Context, entryPointName string) (string, error) {
+	err := p.isEntryPointExist(ctx, entryPointName)
+	if err == nil {
+		return "", fmt.Errorf("entry point already exist: %s", entryPointName)
+	}
+
+	err = p.validateEntryPointName(entryPointName)
+	if err != nil {
+		return "", fmt.Errorf("validate entry point name: %w", err)
+	}
+
+	entryPointPath := filepath.Join("cmd", entryPointName)
+
+	err = os.MkdirAll(entryPointPath, 0o755)
+	if err != nil {
+		return "", fmt.Errorf("os: mkdir all: %w", err)
+	}
+
+	cmdFile, err := assets.ReadFile("assets/templates/cmd.tmpl")
+	if err != nil {
+		return "", fmt.Errorf("assets: read file: %w", err)
+	}
+
+	cmdFilePath := filepath.Join(entryPointPath, "main.go")
+
+	err = os.WriteFile(cmdFilePath, cmdFile, 0o644)
+	if err != nil {
+		return "", fmt.Errorf("os: write file: %w", err)
+	}
+
+	return cmdFilePath, nil
 }
 
 func (p *Project) GetAllPorts(ctx context.Context, targetDomain string) ([]string, error) {
@@ -197,9 +274,9 @@ func (p *Project) CreateService(ctx context.Context, targetDomain, serviceName, 
 		return "", fmt.Errorf("is domain exist: %w", err)
 	}
 
-	err = p.validateServiceName(serviceName)
+	err = p.validateInstanceName("service", serviceName)
 	if err != nil {
-		return "", fmt.Errorf("validate service name: %w", err)
+		return "", fmt.Errorf("validate instance name: %w", err)
 	}
 
 	if pkgName == "" {
@@ -233,4 +310,68 @@ func (p *Project) CreateService(ctx context.Context, targetDomain, serviceName, 
 	}
 
 	return serviceFile, nil
+}
+
+func (p *Project) GetAllInfrastructes(ctx context.Context) ([]string, error) {
+	infraPath := filepath.Join("internal", "infrastructure")
+
+	infraCandidatePaths, err := filepath.Glob(filepath.Join(infraPath, "*"))
+	if err != nil {
+		return nil, fmt.Errorf("filepath: glob: %w", err)
+	}
+
+	infraPaths := lo.Filter(infraCandidatePaths, func(d string, _ int) bool {
+		stat, err2 := os.Stat(d)
+		return err2 == nil && stat.IsDir()
+	})
+
+	infras := lo.Map(infraPaths, func(d string, _ int) string {
+		return filepath.Base(d)
+	})
+
+	return infras, nil
+}
+
+func (p *Project) CreateInfrastructure(ctx context.Context, infraName, pkgName, portName string) (string, error) {
+	err := p.isInfraExist(ctx, infraName)
+	if err == nil {
+		return "", fmt.Errorf("infrastructure already exist: %s", infraName)
+	}
+
+	err = p.validateInstanceName("infrastructure", infraName)
+	if err != nil {
+		return "", fmt.Errorf("validate service name: %w", err)
+	}
+
+	if pkgName == "" {
+		pkgName = strings.ToLower(infraName)
+	}
+
+	err = p.validatePkgName(pkgName)
+	if err != nil {
+		return "", fmt.Errorf("validate pkg name: %w", err)
+	}
+
+	err = p.isInfraExist(ctx, infraName)
+	if err == nil {
+		return "", fmt.Errorf("infrastructure already exist: %s", infraName)
+	}
+
+	infraPath := filepath.Join("internal", "infrastructure", pkgName)
+
+	err = os.MkdirAll(infraPath, 0o755)
+	if err != nil {
+		return "", fmt.Errorf("os: mkdir all: %w", err)
+	}
+
+	infraFile, err := p.generateInfraFile(ctx, infraPath, infraName, pkgName, portName)
+	if err != nil {
+		err2 := os.RemoveAll(infraPath)
+		if err2 != nil {
+			return "", fmt.Errorf("os: remove all: %w", err2)
+		}
+		return "", fmt.Errorf("generate infrastructure file: %w", err)
+	}
+
+	return infraFile, nil
 }

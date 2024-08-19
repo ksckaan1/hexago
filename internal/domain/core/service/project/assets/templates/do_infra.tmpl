@@ -1,0 +1,22 @@
+package {{.PkgName}}
+
+{{ if ne .PortPath ""}}import (
+  "github.com/samber/do"
+  {{.PortDomain}}port "{{.PortPath}}"
+)
+
+var _ {{.PortDomain}}port.{{.PortName}} = (*{{.InfraName}})(nil)
+
+type {{.InfraName}} struct {}
+
+func New(i *do.Injector) (*{{.InfraName}}, error) {
+  return &{{.InfraName}}{}, nil
+}{{else}}import "github.com/samber/do"
+
+type {{.InfraName}} struct {}
+
+func New(i *do.Injector) (*{{.InfraName}}, error) {
+  return &{{.InfraName}}{}, nil
+}{{end}}
+{{ if ne .PortImplementation "" }}
+{{ .PortImplementation }}{{end}}

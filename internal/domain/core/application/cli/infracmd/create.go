@@ -1,8 +1,7 @@
-package servicecmd
+package infracmd
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
@@ -12,49 +11,47 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type ServiceCreateCommand struct {
+type InfraCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
 	// flags
-	flagDomain   *string
 	flagPkgName  *string
 	flagPortName *string
 	flagNoPort   *bool
 }
 
-func NewServiceCreateCommand(i *do.Injector) (*ServiceCreateCommand, error) {
-	return &ServiceCreateCommand{
+func NewInfraCreateCommand(i *do.Injector) (*InfraCreateCommand, error) {
+	return &InfraCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
-			Example: "hexago service new <ServiceName>",
-			Short:   "Create a service",
-			Long:    `Create a service`,
+			Example: "hexago infra new <InfraName>",
+			Short:   "Create a infrastructure",
+			Long:    `Create a infrastructure`,
 			Args:    cobra.ExactArgs(1),
 		},
 		injector: i,
 	}, nil
 }
 
-func (c *ServiceCreateCommand) Command() *cobra.Command {
+func (c *InfraCreateCommand) Command() *cobra.Command {
 	c.init()
 	return c.cmd
 }
 
-func (c *ServiceCreateCommand) AddCommand(cmds ...Commander) {
+func (c *InfraCreateCommand) AddCommand(cmds ...Commander) {
 	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
 		return cmd.Command()
 	})...)
 }
 
-func (c *ServiceCreateCommand) init() {
+func (c *InfraCreateCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service new <ServiceName> -d <domainname>")
-	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago service new <ServiceName> -p <servicename>")
-	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago service new <ServiceName> -i <domainname>:<PortName>")
-	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago service new <ServiceName> -n")
+	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago infra new <InfraName> -p <servicename>")
+	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago infra new <InfraName> -i <domainname>:<PortName>")
+	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago infra new <InfraName> -n")
 }
 
-func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
+func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 	projectService, err := do.Invoke[port.ProjectService](c.injector)
 	if err != nil {
 		return fmt.Errorf("invoke project service: %w", err)
@@ -73,37 +70,6 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
 		return fmt.Errorf("project service: get all domains: %w", err)
-	}
-
-	if len(domains) == 0 {
-		return fmt.Errorf("No domains found.\nA domain needs to be created first")
-	}
-
-	if *c.flagDomain == "" {
-		if len(domains) == 1 {
-			*c.flagDomain = domains[0]
-		} else {
-
-			selectList := lo.Map(domains, func(d string, _ int) huh.Option[string] {
-				return huh.NewOption(d, d)
-			})
-
-			err2 := huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Select a domain.").
-						Options(
-							selectList...,
-						).
-						Value(c.flagDomain),
-				).WithShowHelp(true),
-			).Run()
-			if err2 != nil {
-				return fmt.Errorf("select a domain: %w", err2)
-			}
-		}
-	} else if !slices.Contains(domains, *c.flagDomain) {
-		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
 	if *c.flagNoPort {
@@ -146,13 +112,13 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	serviceFile, err := projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName, *c.flagPortName)
+	infraFile, err := projectService.CreateInfrastructure(cmd.Context(), args[0], *c.flagPkgName, *c.flagPortName)
 	if err != nil {
-		return fmt.Errorf("project service: create service: %w", err)
+		return fmt.Errorf("project service: create infrastructure: %w", err)
 	}
 
 	fmt.Println("")
-	util.UILog(util.Success, "service created\n"+serviceFile)
+	util.UILog(util.Success, "infrastructure created\n"+infraFile)
 	fmt.Println("")
 
 	return nil

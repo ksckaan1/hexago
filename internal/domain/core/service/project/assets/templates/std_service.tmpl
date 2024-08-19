@@ -4,12 +4,16 @@ package {{.PkgName}}
   {{ if ne .TargetDomain .PortDomain}}{{.PortDomain}}port {{end}}"{{.PortPath}}"
 )
 
-var _ {{if ne .PortDomain .TargetDomain}}{{.PortDomain}}{{end}}port.{{.PortName}} = (*{{.ServiceName}})(nil){{end}}
+var _ {{if ne .PortDomain .TargetDomain}}{{.PortDomain}}{{end}}port.{{.PortName}} = (*{{.ServiceName}})(nil)
 
-type {{.ServiceName}} struct {}
+type {{.ServiceName}} struct{}
 
 func New() (*{{.ServiceName}}, error) {
   return &{{.ServiceName}}{}, nil
-}
+}{{else}}type {{.ServiceName}} struct{}
 
-{{ if ne .PortImplementation "" }}{{ .PortImplementation }}{{end}}
+func New() (*{{.ServiceName}}, error) {
+  return &{{.ServiceName}}{}, nil
+}{{end}}
+{{ if ne .PortImplementation "" }}
+{{ .PortImplementation }}{{end}}

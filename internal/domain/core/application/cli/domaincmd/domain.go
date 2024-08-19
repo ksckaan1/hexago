@@ -20,7 +20,6 @@ func NewDomainCommand(i *do.Injector) (*DomainCommand, error) {
 		cmd: &cobra.Command{
 			Use:     "domain",
 			Example: "hexago domain",
-			Aliases: []string{"d"},
 			Short:   "Domain processes",
 			Long:    `Domain processes`,
 		},

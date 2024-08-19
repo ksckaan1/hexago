@@ -20,7 +20,6 @@ func NewPortCommand(i *do.Injector) (*PortCommand, error) {
 		cmd: &cobra.Command{
 			Use:     "port",
 			Example: "hexago port",
-			Aliases: []string{"p"},
 			Short:   "Port processes",
 			Long:    `Port processes`,
 		},

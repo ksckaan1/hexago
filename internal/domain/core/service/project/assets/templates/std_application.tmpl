@@ -1,0 +1,19 @@
+package {{.PkgName}}
+
+{{ if ne .PortPath ""}}import (
+  {{ if ne .TargetDomain .PortDomain}}{{.PortDomain}}port {{end}}"{{.PortPath}}"
+)
+
+var _ {{if ne .PortDomain .TargetDomain}}{{.PortDomain}}{{end}}port.{{.PortName}} = (*{{.ApplicationName}})(nil)
+
+type {{.ApplicationName}} struct{}
+
+func New() (*{{.ApplicationName}}, error) {
+  return &{{.ApplicationName}}{}, nil
+}{{else}}type {{.ApplicationName}} struct{}
+
+func New() (*{{.ApplicationName}}, error) {
+  return &{{.ApplicationName}}{}, nil
+}{{end}}
+{{ if ne .PortImplementation "" }}
+{{ .PortImplementation }}{{end}}

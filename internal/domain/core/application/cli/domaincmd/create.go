@@ -18,9 +18,8 @@ type DomainCreateCommand struct {
 func NewDomainCreateCommand(i *do.Injector) (*DomainCreateCommand, error) {
 	return &DomainCreateCommand{
 		cmd: &cobra.Command{
-			Use:     "create",
-			Example: "hexago domain create example\nhexago d c example\nhexago domain new example\nhexago d n example",
-			Aliases: []string{"c", "new", "n"},
+			Use:     "new",
+			Example: "hexago domain new <domainname>",
 			Short:   "Create a domain",
 			Long:    `Create a domain`,
 			Args:    cobra.ExactArgs(1),

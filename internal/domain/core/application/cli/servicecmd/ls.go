@@ -25,7 +25,7 @@ func NewServiceLSCommand(i *do.Injector) (*ServiceLSCommand, error) {
 	return &ServiceLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
-			Example: "hexago service ls -d core\nhexago service ls (select domain interatively)",
+			Example: "hexago service ls -d <domainname>\nhexago service ls (select domain interatively)",
 			Short:   "List services",
 			Long:    `List services`,
 		},
@@ -48,8 +48,8 @@ func (c *ServiceLSCommand) AddCommand(cmds ...Commander) {
 
 func (c *ServiceLSCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago domain ls -l")
-	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d core")
+	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago service ls -l")
+	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d <domainname>")
 }
 
 func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
@@ -94,7 +94,7 @@ func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
 				return fmt.Errorf("select a domain: %w", err2)
 			}
 		}
-	} else if !slices.Contains(domains, *c.flagDomain) {
+	} else if *c.flagDomain != "*" && !slices.Contains(domains, *c.flagDomain) {
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 

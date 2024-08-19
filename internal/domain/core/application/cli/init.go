@@ -28,8 +28,7 @@ func NewInitCommand(i *do.Injector) (*InitCommand, error) {
 	return &InitCommand{
 		cmd: &cobra.Command{
 			Use:     "init",
-			Example: "hexago init my-project",
-			Aliases: []string{"i"},
+			Example: "hexago init <project-name>",
 			Short:   "Initialize a hexagonal Go project",
 			Long:    `Initialize a hexagonal Go project`,
 			Args:    cobra.ExactArgs(1),
@@ -53,12 +52,22 @@ func (c *InitCommand) AddCommand(cmds ...Commander) {
 
 func (c *InitCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagModuleName = c.cmd.Flags().StringP("module-name", "m", "", "hexago init my-project -m my-project")
+	c.flagModuleName = c.cmd.Flags().StringP("module-name", "m", "", "hexago init <project-name> -m <module-name>")
 }
 
 func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 	if *c.flagModuleName == "" {
 		defaultName := filepath.Base(args[0])
+
+		if defaultName == "." {
+			abs, err := filepath.Abs(defaultName)
+			if err != nil {
+				return fmt.Errorf("filepath: abs: %w", err)
+			}
+
+			defaultName = filepath.Base(abs)
+		}
+
 		err := huh.NewInput().
 			Title("What’s module name?").
 			Placeholder(defaultName).
@@ -87,8 +96,13 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("project service: init new project: %w", err)
 	}
 
+	msg := "Ready to go!"
+	if args[0] != "." {
+		msg = "cd " + args[0]
+	}
+
 	fmt.Println("")
-	util.UILog(util.Success, "cd "+args[0], "Project Initialized")
+	util.UILog(util.Success, msg, "Project Initialized")
 	fmt.Println("")
 
 	return nil

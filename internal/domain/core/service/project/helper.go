@@ -87,6 +87,15 @@ func (*Project) createHexagoConfigs(projectPath string) error {
 }
 
 func (*Project) initGoModule(ctx context.Context, moduleName string) error {
+	if moduleName == "." {
+		abs, err := filepath.Abs(moduleName)
+		if err != nil {
+			return fmt.Errorf("filepath: abs: %w", err)
+		}
+
+		moduleName = filepath.Base(abs)
+	}
+
 	cmd := exec.CommandContext(ctx, "go", "mod", "init", moduleName)
 	stdErr := &bytes.Buffer{}
 	cmd.Stderr = stdErr
@@ -107,7 +116,7 @@ func (*Project) createProjectSubDirs() error {
 		filepath.Join("internal", "domain", "core", "model"),
 		filepath.Join("internal", "domain", "core", "port"),
 		filepath.Join("internal", "domain", "core", "service"),
-		filepath.Join("internal", "infrastructure", "repository"),
+		filepath.Join("internal", "infrastructure"),
 		filepath.Join("internal", "util"),
 		"config",
 		"schemas",
@@ -120,6 +129,19 @@ func (*Project) createProjectSubDirs() error {
 		if err != nil {
 			return fmt.Errorf("os: mkdir all: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (p *Project) isEntryPointExist(ctx context.Context, targetEntryPoint string) error {
+	entryPoints, err := p.GetAllEntryPoints(ctx)
+	if err != nil {
+		return fmt.Errorf("get all entry points: %w", err)
+	}
+
+	if !slices.Contains(entryPoints, targetEntryPoint) {
+		return fmt.Errorf("target entry point not found: %s", targetEntryPoint)
 	}
 
 	return nil
@@ -138,6 +160,19 @@ func (p *Project) isDomainExist(ctx context.Context, targetDomain string) error 
 	return nil
 }
 
+func (p *Project) isInfraExist(ctx context.Context, targetInfra string) error {
+	infras, err := p.GetAllInfrastructes(ctx)
+	if err != nil {
+		return fmt.Errorf("get all infrastructures: %w", err)
+	}
+
+	if !slices.Contains(infras, targetInfra) {
+		return fmt.Errorf("target infrastructure not found: %s", targetInfra)
+	}
+
+	return nil
+}
+
 func (p *Project) isServiceExist(ctx context.Context, targetDomain, targetService string) error {
 	services, err := p.GetAllServices(ctx, targetDomain)
 	if err != nil {
@@ -151,11 +186,24 @@ func (p *Project) isServiceExist(ctx context.Context, targetDomain, targetServic
 	return nil
 }
 
-var serviceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]{0,}$`)
+func (p *Project) isApplicationExist(ctx context.Context, targetDomain, targetApplication string) error {
+	applications, err := p.GetAllApplications(ctx, targetDomain)
+	if err != nil {
+		return fmt.Errorf("get all applications: %w", err)
+	}
 
-func (*Project) validateServiceName(serviceName string) error {
-	if !serviceNameRgx.MatchString(serviceName) {
-		return fmt.Errorf("invalid service name: %s, service name must be PascalCase", serviceName)
+	if !slices.Contains(applications, targetApplication) {
+		return fmt.Errorf("target application not found: %s", targetApplication)
+	}
+
+	return nil
+}
+
+var instanceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]{0,}$`)
+
+func (*Project) validateInstanceName(instanceType, instanceName string) error {
+	if !instanceNameRgx.MatchString(instanceName) {
+		return fmt.Errorf("invalid %[1]s name: %[2]s, %[1]s name must be \"PascalCase\"", instanceType, instanceName)
 	}
 	return nil
 }
@@ -164,7 +212,16 @@ var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
 
 func (*Project) validatePkgName(pkgName string) error {
 	if !pkgNameRgx.MatchString(pkgName) {
-		return fmt.Errorf("invalid package name: %s, package name must be lowercase", pkgName)
+		return fmt.Errorf("invalid package name: %s, package name must be \"lowercase\"", pkgName)
+	}
+	return nil
+}
+
+var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
+
+func (*Project) validateEntryPointName(entryPointName string) error {
+	if !pkgNameRgx.MatchString(entryPointName) {
+		return fmt.Errorf("invalid entry point name: %s, entry point name must be \"lowercase\" \"lower_case\" or \"lower-case\"", entryPointName)
 	}
 	return nil
 }
@@ -189,6 +246,79 @@ func (p *Project) generateServiceFile(ctx context.Context, targetDomain, service
 		"PortImplementation": implementation,
 		"PortDomain":         portDomain,
 		"TargetDomain":       targetDomain,
+		"PortPath":           portPath,
+		"PortName":           portName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("template: execute: %w", err)
+	}
+
+	err = os.WriteFile(serviceFile, buf.Bytes(), 0o644)
+	if err != nil {
+		return "", fmt.Errorf("os: write file: %w", err)
+	}
+
+	return serviceFile, nil
+}
+
+func (p *Project) generateApplicationFile(ctx context.Context, targetDomain, applicationPath, applicationName, pkgName, portParam string) (string, error) {
+	applicationFile := filepath.Join(applicationPath, fmt.Sprintf("%s.go", pkgName))
+
+	portName, portDomain, portPath, implementation, err := p.generateImplementation(ctx, targetDomain, applicationName, portParam)
+	if err != nil {
+		return "", fmt.Errorf("generate implementation: %w", err)
+	}
+
+	applicationTemplate, err := p.parseTemplate(p.cfg.GetApplicationTemplate(), "application")
+	if err != nil {
+		return "", fmt.Errorf("parse template: %w", err)
+	}
+
+	buf := &bytes.Buffer{}
+	err = applicationTemplate.Execute(buf, map[string]any{
+		"ApplicationName":    applicationName,
+		"PkgName":            pkgName,
+		"PortImplementation": implementation,
+		"PortDomain":         portDomain,
+		"TargetDomain":       targetDomain,
+		"PortPath":           portPath,
+		"PortName":           portName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("template: execute: %w", err)
+	}
+
+	err = os.WriteFile(applicationFile, buf.Bytes(), 0o644)
+	if err != nil {
+		return "", fmt.Errorf("os: write file: %w", err)
+	}
+
+	return applicationFile, nil
+}
+
+func (p *Project) generateInfraFile(ctx context.Context, infraPath, infraName, pkgName, portParam string) (string, error) {
+	serviceFile := filepath.Join(infraPath, fmt.Sprintf("%s.go", pkgName))
+
+	portName, portDomain, portPath, implementation, err := p.generateImplementation(ctx, "", infraName, portParam)
+	if err != nil {
+		return "", fmt.Errorf("generate implementation: %w", err)
+	}
+
+	if portName != "" && portDomain == "" {
+		return "", fmt.Errorf("invalid port: \"%s\" specify as <domainname>:<PortName>", portParam)
+	}
+
+	infraTemplate, err := p.parseTemplate(p.cfg.GetInfrastructureTemplate(), "infra")
+	if err != nil {
+		return "", fmt.Errorf("parse template: %w", err)
+	}
+
+	buf := &bytes.Buffer{}
+	err = infraTemplate.Execute(buf, map[string]any{
+		"InfraName":          infraName,
+		"PkgName":            pkgName,
+		"PortImplementation": implementation,
+		"PortDomain":         portDomain,
 		"PortPath":           portPath,
 		"PortName":           portName,
 	})
@@ -287,7 +417,7 @@ func (*Project) getPort(targetDomain, portName string) (*PortValue, error) {
 	}, nil
 }
 
-func (p *Project) generateImplementation(ctx context.Context, targetDomain, serviceName, portParam string) (portName, portDomain, portPath, implementation string, err error) {
+func (p *Project) generateImplementation(ctx context.Context, targetDomain, instanceName, portParam string) (portName, portDomain, portPath, implementation string, err error) {
 	portValue, err := p.getPort(targetDomain, portParam)
 	if err != nil {
 		return "", "", "", "", fmt.Errorf("get port: %w", err)
@@ -319,7 +449,7 @@ func (p *Project) generateImplementation(ctx context.Context, targetDomain, serv
 
 	cmd := exec.CommandContext(ctx,
 		"impl",
-		fmt.Sprintf("%s *%s", strings.ToLower(string(serviceName[0])), serviceName),
+		fmt.Sprintf("%s *%s", strings.ToLower(string(instanceName[0])), instanceName),
 		fmt.Sprintf("%s.%s", portPath, portValue.Name),
 	)
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}

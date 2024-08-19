@@ -48,3 +48,10 @@ func (c *Config) GetApplicationTemplate() string {
 	}
 	return c.store.Templates.Application
 }
+
+func (c *Config) GetInfrastructureTemplate() string {
+	if c.store.Templates.Infrastructure == "" {
+		return "std"
+	}
+	return c.store.Templates.Infrastructure
+}
