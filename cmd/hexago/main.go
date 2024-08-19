@@ -30,6 +30,9 @@ func main() {
 	do.Provide(i, servicecmd.NewServiceCreateCommand)
 	do.Provide(i, portcmd.NewPortCommand)
 	do.Provide(i, portcmd.NewPortLSCommand)
+	do.Provide(i, appcmd.NewAppCommand)
+	do.Provide(i, appcmd.NewAppLSCommand)
+	do.Provide(i, appcmd.NewAppCreateCommand)
 	do.Provide(i, projectservice.New)
 	do.Provide(i, config.New)
 
