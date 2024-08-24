@@ -55,3 +55,10 @@ func (c *Config) GetInfrastructureTemplate() string {
 	}
 	return c.store.Templates.Infrastructure
 }
+
+func (c *Config) GetPackageTemplate() string {
+	if c.store.Templates.Package == "" {
+		return "std"
+	}
+	return c.store.Templates.Package
+}

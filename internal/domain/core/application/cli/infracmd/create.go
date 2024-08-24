@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/huh"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -15,9 +16,10 @@ type InfraCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
 	// flags
-	flagPkgName  *string
-	flagPortName *string
-	flagNoPort   *bool
+	flagPkgName         *string
+	flagPortName        *string
+	flagNoPort          *bool
+	flagAssertInterface *bool
 }
 
 func NewInfraCreateCommand(i *do.Injector) (*InfraCreateCommand, error) {
@@ -46,9 +48,10 @@ func (c *InfraCreateCommand) AddCommand(cmds ...Commander) {
 
 func (c *InfraCreateCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago infra new <InfraName> -p <servicename>")
+	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago infra new <InfraName> -p <infraname>")
 	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago infra new <InfraName> -i <domainname>:<PortName>")
 	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago infra new <InfraName> -n")
+	c.flagAssertInterface = c.cmd.Flags().BoolP("assert-port", "a", false, "hexago infra new <InfraName> -i <domainname>:<PortName> -a")
 }
 
 func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -112,7 +115,15 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	infraFile, err := projectService.CreateInfrastructure(cmd.Context(), args[0], *c.flagPkgName, *c.flagPortName)
+	infraFile, err := projectService.CreateInfrastructure(
+		cmd.Context(),
+		dto.CreateInfraParams{
+			StructName:      args[0],
+			PackageName:     *c.flagPkgName,
+			PortParam:       *c.flagPortName,
+			AssertInterface: *c.flagAssertInterface,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("project service: create infrastructure: %w", err)
 	}

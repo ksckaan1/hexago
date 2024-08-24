@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/charmbracelet/huh"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -16,10 +17,11 @@ type ServiceCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
 	// flags
-	flagDomain   *string
-	flagPkgName  *string
-	flagPortName *string
-	flagNoPort   *bool
+	flagDomain          *string
+	flagPkgName         *string
+	flagPortName        *string
+	flagNoPort          *bool
+	flagAssertInterface *bool
 }
 
 func NewServiceCreateCommand(i *do.Injector) (*ServiceCreateCommand, error) {
@@ -52,6 +54,7 @@ func (c *ServiceCreateCommand) init() {
 	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago service new <ServiceName> -p <servicename>")
 	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago service new <ServiceName> -i <domainname>:<PortName>")
 	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago service new <ServiceName> -n")
+	c.flagAssertInterface = c.cmd.Flags().BoolP("assert-port", "a", false, "hexago service new <ServiceName> -i <domainname>:<PortName> -a")
 }
 
 func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -83,7 +86,6 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		if len(domains) == 1 {
 			*c.flagDomain = domains[0]
 		} else {
-
 			selectList := lo.Map(domains, func(d string, _ int) huh.Option[string] {
 				return huh.NewOption(d, d)
 			})
@@ -146,7 +148,16 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	serviceFile, err := projectService.CreateService(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName, *c.flagPortName)
+	serviceFile, err := projectService.CreateService(
+		cmd.Context(),
+		dto.CreateServiceParams{
+			TargetDomain:    *c.flagDomain,
+			StructName:      args[0],
+			PackageName:     *c.flagPkgName,
+			PortParam:       *c.flagPortName,
+			AssertInterface: *c.flagAssertInterface,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("project service: create service: %w", err)
 	}

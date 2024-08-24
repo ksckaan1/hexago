@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/charmbracelet/huh"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -16,10 +17,11 @@ type AppCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
 	// flags
-	flagDomain   *string
-	flagPkgName  *string
-	flagPortName *string
-	flagNoPort   *bool
+	flagDomain          *string
+	flagPkgName         *string
+	flagPortName        *string
+	flagNoPort          *bool
+	flagAssertInterface *bool
 }
 
 func NewAppCreateCommand(i *do.Injector) (*AppCreateCommand, error) {
@@ -52,6 +54,7 @@ func (c *AppCreateCommand) init() {
 	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago app new <ApplicationName> -p <applicationame>")
 	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago app new <ApplicationName> -i <domainname:PortName>")
 	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago app new <ApplicationName> -n")
+	c.flagAssertInterface = c.cmd.Flags().BoolP("assert-port", "a", false, "hexago app new <ApplicationName> -i <domainname>:<PortName> -a")
 }
 
 func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -146,7 +149,16 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	serviceFile, err := projectService.CreateApplication(cmd.Context(), *c.flagDomain, args[0], *c.flagPkgName, *c.flagPortName)
+	serviceFile, err := projectService.CreateApplication(
+		cmd.Context(),
+		dto.CreateApplicationParams{
+			TargetDomain:    *c.flagDomain,
+			StructName:      args[0],
+			PackageName:     *c.flagPkgName,
+			PortParam:       *c.flagPortName,
+			AssertInterface: *c.flagAssertInterface,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("project service: create application: %w", err)
 	}

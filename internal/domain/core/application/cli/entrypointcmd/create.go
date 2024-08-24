@@ -3,6 +3,7 @@ package entrypointcmd
 import (
 	"fmt"
 
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
@@ -49,7 +50,12 @@ func (c *EntryPointCreateCommand) runner(cmd *cobra.Command, args []string) erro
 		return fmt.Errorf("invoke project service: %w", err)
 	}
 
-	epFile, err := projectService.CreateEntryPoint(cmd.Context(), args[0])
+	epFile, err := projectService.CreateEntryPoint(
+		cmd.Context(),
+		dto.CreateEntryPointParams{
+			PackageName: args[0],
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("project service: create entry point: %w", err)
 	}

@@ -24,13 +24,23 @@ type InitCommand struct {
 	flagModuleName *string
 }
 
+const initLongDescription = `init command initialize a hexagonal Go project.
+This command creates a folder called .hexago. This folder includes a config.yaml file that setting up general hexago options.
+In the other side, it initialize traditional Go hexagonal folder structure.
+
+Requires empty folder to init new project.`
+
+const initExamples = `hexago init <project-name> (prompts module name interactively)
+hexago init <project-name> -m <module-name>
+`
+
 func NewInitCommand(i *do.Injector) (*InitCommand, error) {
 	return &InitCommand{
 		cmd: &cobra.Command{
 			Use:     "init",
-			Example: "hexago init <project-name>",
+			Example: initExamples,
 			Short:   "Initialize a hexagonal Go project",
-			Long:    `Initialize a hexagonal Go project`,
+			Long:    initLongDescription,
 			Args:    cobra.ExactArgs(1),
 		},
 		injector: i,

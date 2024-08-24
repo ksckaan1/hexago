@@ -15,13 +15,15 @@ type DomainCommand struct {
 	injector *do.Injector
 }
 
+const domainLong = `domain command includes sub-commands for listing and creating domains.`
+
 func NewDomainCommand(i *do.Injector) (*DomainCommand, error) {
 	return &DomainCommand{
 		cmd: &cobra.Command{
 			Use:     "domain",
 			Example: "hexago domain",
 			Short:   "Domain processes",
-			Long:    `Domain processes`,
+			Long:    domainLong,
 		},
 		injector: i,
 	}, nil

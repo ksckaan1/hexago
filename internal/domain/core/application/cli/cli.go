@@ -8,6 +8,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/entrypointcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/packagecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/samber/do"
@@ -38,6 +39,9 @@ type CLI struct {
 	infraCmd            *infracmd.InfraCommand
 	infraLSCmd          *infracmd.InfraLSCommand
 	infraCreateCmd      *infracmd.InfraCreateCommand
+	packageCmd          *packagecmd.PackageCommand
+	packageLSCmd        *packagecmd.PackageLSCommand
+	packageCreateCmd    *packagecmd.PackageCreateCommand
 }
 
 func New(i *do.Injector) (*CLI, error) {
@@ -61,6 +65,9 @@ func New(i *do.Injector) (*CLI, error) {
 		infraCmd:            do.MustInvoke[*infracmd.InfraCommand](i),
 		infraLSCmd:          do.MustInvoke[*infracmd.InfraLSCommand](i),
 		infraCreateCmd:      do.MustInvoke[*infracmd.InfraCreateCommand](i),
+		packageCmd:          do.MustInvoke[*packagecmd.PackageCommand](i),
+		packageLSCmd:        do.MustInvoke[*packagecmd.PackageLSCommand](i),
+		packageCreateCmd:    do.MustInvoke[*packagecmd.PackageCreateCommand](i),
 	}, nil
 }
 
@@ -83,6 +90,9 @@ func (c *CLI) Run(ctx context.Context) error {
 	c.rootCmd.AddCommand(c.infraCmd)
 	c.infraCmd.AddCommand(c.infraLSCmd)
 	c.infraCmd.AddCommand(c.infraCreateCmd)
+	c.rootCmd.AddCommand(c.packageCmd)
+	c.packageCmd.AddCommand(c.packageLSCmd)
+	c.packageCmd.AddCommand(c.packageCreateCmd)
 
 	err := c.rootCmd.Execute(ctx)
 	if err != nil {

@@ -18,13 +18,20 @@ type DomainLSCommand struct {
 	flagLine *bool
 }
 
+const domainLSLong = `ls command lists domains in project.
+
+Domains are located under the "internal/domain/" directory.`
+
+const domainLSExamples = `hexago domain ls
+hexago domain ls -l`
+
 func NewDomainLSCommand(i *do.Injector) (*DomainLSCommand, error) {
 	return &DomainLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
 			Example: "hexago domain ls",
 			Short:   "List domains",
-			Long:    `List domains`,
+			Long:    domainLSLong,
 		},
 		injector: i,
 		// flags

@@ -8,15 +8,31 @@ import (
 
 type ProjectService interface {
 	InitNewProject(ctx context.Context, params dto.InitNewProjectParams) error
+
+	// Domain
 	GetAllDomains(ctx context.Context) ([]string, error)
-	CreateDomain(ctx context.Context, targetDomain string) error
+	CreateDomain(ctx context.Context, params dto.CreateDomainParams) error
+
+	// Service
 	GetAllServices(ctx context.Context, targetDomain string) ([]string, error)
-	CreateService(ctx context.Context, targetDomain, serviceName, pkgName, portName string) (string, error)
+	CreateService(ctx context.Context, params dto.CreateServiceParams) (string, error)
+
+	// Port
 	GetAllPorts(ctx context.Context, targetDomain string) ([]string, error)
+
+	// Application
 	GetAllApplications(ctx context.Context, targetDomain string) ([]string, error)
-	CreateApplication(ctx context.Context, targetDomain, applicationName, pkgName, portName string) (string, error)
+	CreateApplication(ctx context.Context, params dto.CreateApplicationParams) (string, error)
+
+	// Entry Point (cmd)
 	GetAllEntryPoints(ctx context.Context) ([]string, error)
-	CreateEntryPoint(ctx context.Context, entryPointName string) (string, error)
+	CreateEntryPoint(ctx context.Context, params dto.CreateEntryPointParams) (string, error)
+
+	// Infrastructure
 	GetAllInfrastructes(ctx context.Context) ([]string, error)
-	CreateInfrastructure(ctx context.Context, infraName, pkgName, portName string) (string, error)
+	CreateInfrastructure(ctx context.Context, params dto.CreateInfraParams) (string, error)
+
+	// Package
+	GetAllPackages(ctx context.Context, showGlobal bool) ([]string, error)
+	CreatePackage(ctx context.Context, params dto.CreatePackageParams) (string, error)
 }
