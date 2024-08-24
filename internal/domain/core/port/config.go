@@ -5,4 +5,5 @@ type ConfigService interface {
 	GetServiceTemplate() string
 	GetApplicationTemplate() string
 	GetInfrastructureTemplate() string
+	GetPackageTemplate() string
 }

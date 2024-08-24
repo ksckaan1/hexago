@@ -10,6 +10,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/entrypointcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/packagecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
@@ -42,6 +43,9 @@ func main() {
 	do.Provide(i, infracmd.NewInfraCommand)
 	do.Provide(i, infracmd.NewInfraLSCommand)
 	do.Provide(i, infracmd.NewInfraCreateCommand)
+	do.Provide(i, packagecmd.NewPackageCommand)
+	do.Provide(i, packagecmd.NewPackageLSCommand)
+	do.Provide(i, packagecmd.NewPackageCreateCommand)
 
 	do.Provide(i, projectservice.New)
 	do.Provide(i, config.New)
