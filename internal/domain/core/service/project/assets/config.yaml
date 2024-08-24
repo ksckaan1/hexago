@@ -2,3 +2,4 @@ templates: # std | do | <custom>
   service: std
   application: std
   infrastructure: std
+  package: std

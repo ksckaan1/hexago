@@ -1,19 +1,15 @@
 package {{.PkgName}}
 
-{{ if ne .PortPath ""}}import (
-  {{.PortDomain}}port "{{.PortPath}}"
-)
+{{if and .AssertInterface (ne .ImportName "") (ne .InterfaceName "") (ne .ImportPath "")}}
+import {{.ImportName}} "{{.ImportPath}}"
 
-var _ {{.PortDomain}}port.{{.PortName}} = (*{{.InfraName}})(nil)
+var _ {{.ImportName}}.{{.InterfaceName}} = (*{{.StructName}})(nil)
+{{end}}
 
-type {{.InfraName}} struct{}
+type {{.StructName}} struct{}
 
-func New() (*{{.InfraName}}, error) {
-  return &{{.InfraName}}{}, nil
-}{{else}}type {{.InfraName}} struct{}
+func New() (*{{.StructName}}, error) {
+  return &{{.StructName}}{}, nil
+}
 
-func New() (*{{.InfraName}}, error) {
-  return &{{.InfraName}}{}, nil
-}{{end}}
-{{ if ne .PortImplementation "" }}
-{{ .PortImplementation }}{{end}}
+{{ if ne .Implementation "" }}{{ .Implementation }}{{end}}
