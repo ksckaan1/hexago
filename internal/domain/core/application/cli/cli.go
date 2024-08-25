@@ -10,6 +10,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/packagecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/samber/do"
 	"github.com/spf13/cobra"
@@ -42,6 +43,7 @@ type CLI struct {
 	packageCmd          *packagecmd.PackageCommand
 	packageLSCmd        *packagecmd.PackageLSCommand
 	packageCreateCmd    *packagecmd.PackageCreateCommand
+	runnerCmd           *runnercmd.RunnerCommand
 }
 
 func New(i *do.Injector) (*CLI, error) {
@@ -68,6 +70,7 @@ func New(i *do.Injector) (*CLI, error) {
 		packageCmd:          do.MustInvoke[*packagecmd.PackageCommand](i),
 		packageLSCmd:        do.MustInvoke[*packagecmd.PackageLSCommand](i),
 		packageCreateCmd:    do.MustInvoke[*packagecmd.PackageCreateCommand](i),
+		runnerCmd:           do.MustInvoke[*runnercmd.RunnerCommand](i),
 	}, nil
 }
 
@@ -93,6 +96,7 @@ func (c *CLI) Run(ctx context.Context) error {
 	c.rootCmd.AddCommand(c.packageCmd)
 	c.packageCmd.AddCommand(c.packageLSCmd)
 	c.packageCmd.AddCommand(c.packageCreateCmd)
+	c.rootCmd.AddCommand(c.runnerCmd)
 
 	err := c.rootCmd.Execute(ctx)
 	if err != nil {

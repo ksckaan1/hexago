@@ -3,3 +3,14 @@ templates: # std | do | <custom>
   application: std
   infrastructure: std
   package: std
+
+runners:
+  # api: # it runs "go run ./cmd/api", if exists
+  #   env:
+  #     - DB=POSTGRESQL
+  #     - LOG_LEVEL=debug
+  #   seperate_log_files: true # "api.stdout.log" and "api.stderr.log" files
+
+  # mycommand:
+  #   cmd: "go version" # overwrite default "go run ./cmd/..." command
+  #   disable_log_files: true # do not print log file

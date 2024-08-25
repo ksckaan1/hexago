@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/model"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/samber/do"
@@ -61,4 +62,15 @@ func (c *Config) GetPackageTemplate() string {
 		return "std"
 	}
 	return c.store.Templates.Package
+}
+
+func (c *Config) GetRunner(runner string) (*model.Runner, error) {
+	if c.store.Runners == nil {
+		return nil, dto.ErrRunnerNotImplemented
+	}
+	v, ok := c.store.Runners[runner]
+	if !ok {
+		return nil, dto.ErrRunnerNotImplemented
+	}
+	return v, nil
 }

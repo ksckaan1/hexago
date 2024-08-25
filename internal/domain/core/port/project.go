@@ -35,4 +35,7 @@ type ProjectService interface {
 	// Package
 	GetAllPackages(ctx context.Context, showGlobal bool) ([]string, error)
 	CreatePackage(ctx context.Context, params dto.CreatePackageParams) (string, error)
+
+	// Runner
+	Run(ctx context.Context, command string, envVars []string, verbose bool) error
 }

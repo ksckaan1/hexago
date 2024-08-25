@@ -12,6 +12,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/packagecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
@@ -46,6 +47,7 @@ func main() {
 	do.Provide(i, packagecmd.NewPackageCommand)
 	do.Provide(i, packagecmd.NewPackageLSCommand)
 	do.Provide(i, packagecmd.NewPackageCreateCommand)
+	do.Provide(i, runnercmd.NewRunnerCommand)
 
 	do.Provide(i, projectservice.New)
 	do.Provide(i, config.New)
