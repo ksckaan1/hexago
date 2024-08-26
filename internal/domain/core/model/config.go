@@ -13,8 +13,13 @@ type Templates struct {
 }
 
 type Runner struct {
-	Cmd              string   `yaml:"cmd"`
-	EnvVars          []string `yaml:"env"`
-	SeperateLogFiles bool     `yaml:"seperate_log_files"`
-	DisableLogFiles  bool     `yaml:"disable_log_files"`
+	Cmd     string   `yaml:"cmd"`
+	EnvVars []string `yaml:"env"`
+	Log     Log      `yaml:"log"`
+}
+
+type Log struct {
+	Disabled      bool `yaml:"disabled"`
+	SeperateFiles bool `yaml:"seperate_files"`
+	Overwrite     bool `yaml:"overwrite"`
 }

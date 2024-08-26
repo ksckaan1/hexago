@@ -4,73 +4,49 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"slices"
+
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) Run(ctx context.Context, commandName string, envVars []string, verbose bool) error {
-	commandInfo, err := p.getCommandInfo(ctx, commandName)
+	runner, err := p.getCommandInfo(ctx, commandName)
 	if err != nil {
 		return fmt.Errorf("get command info: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", commandInfo.Command)
-	cmd.Env = slices.Concat(os.Environ(), envVars, commandInfo.EnvVars)
+	cmd := exec.CommandContext(ctx, "sh", "-c", runner.Cmd)
+	cmd.Env = slices.Concat(os.Environ(), envVars, runner.EnvVars)
 	cmd.Stdin = os.Stdin
 
-	if !commandInfo.DisableLogFiles {
-		err = os.MkdirAll("logs", 0o755)
-		if err != nil {
-			return fmt.Errorf("os: mkdir all: %w", err)
-		}
-
-		if commandInfo.SeperateLogFiles {
-			stdErrFile, err := os.Create(fmt.Sprintf("logs/%s.stderr.log", commandName))
-			if err != nil {
-				log.Fatalln(err)
-			}
-			defer stdErrFile.Close()
-
-			cmd.Stderr = io.MultiWriter(os.Stderr, stdErrFile)
-
-			stdOutFile, err := os.Create(fmt.Sprintf("logs/%s.stdout.log", commandName))
-			if err != nil {
-				log.Fatalln(err)
-			}
-			defer stdOutFile.Close()
-
-			cmd.Stdout = io.MultiWriter(os.Stdout, stdOutFile)
-		} else {
-			logFile, err := os.Create(fmt.Sprintf("logs/%s.log", commandName))
-			if err != nil {
-				log.Fatalln(err)
-			}
-			defer logFile.Close()
-
-			cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
-			cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
-		}
-	} else {
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
+	closers, err := p.prepareLogFiles(commandName, runner, cmd)
+	if err != nil {
+		return fmt.Errorf("prepare log files: %w", err)
 	}
+	defer func() {
+		for i := range closers {
+			closers[i].Close()
+		}
+	}()
 
 	sigCh := make(chan os.Signal, 1)
 	go func() {
 		sig := <-sigCh
-		fmt.Println("signal received:", sig.String())
 		cmd.Process.Signal(sig)
 	}()
 	signal.Notify(sigCh, os.Kill, os.Interrupt)
 
 	if verbose {
-		fmt.Println("command:", cmd.String())
-		fmt.Println("env vars:", slices.Concat(envVars, commandInfo.EnvVars))
-		fmt.Println("seperate log files:", commandInfo.SeperateLogFiles)
-		fmt.Println("disable log files:", commandInfo.DisableLogFiles)
+		fmt.Println("cmd:", cmd.String())
+		fmt.Println("env:", slices.Concat(envVars, runner.EnvVars))
+		fmt.Println("log.disabled:", runner.Log.Disabled)
+		fmt.Println("log.seperate_files:", runner.Log.SeperateFiles)
+		fmt.Println("log.overwrite:", runner.Log.Overwrite)
+		fmt.Println("-----------------------------------")
 	}
 
 	err = cmd.Run()
@@ -81,26 +57,14 @@ func (p *Project) Run(ctx context.Context, commandName string, envVars []string,
 	return nil
 }
 
-type CommandInfo struct {
-	Command          string
-	EnvVars          []string
-	SeperateLogFiles bool
-	DisableLogFiles  bool
-}
-
-func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*CommandInfo, error) {
-	cmdInfo := &CommandInfo{}
-
+func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*model.Runner, error) {
 	runner, err := p.cfg.GetRunner(commandName)
-	if err == nil {
-		cmdInfo.Command = runner.Cmd
-		cmdInfo.EnvVars = runner.EnvVars
-		cmdInfo.SeperateLogFiles = runner.SeperateLogFiles
-		cmdInfo.DisableLogFiles = runner.DisableLogFiles
+	if err == nil && runner.Cmd != "" {
+		return runner, nil
 	}
 
-	if cmdInfo.Command != "" {
-		return cmdInfo, nil
+	if runner == nil {
+		runner = &model.Runner{}
 	}
 
 	entryPoints, err := p.GetAllEntryPoints(ctx)
@@ -112,7 +76,65 @@ func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*Comm
 		return nil, fmt.Errorf("entry point or runner not found")
 	}
 
-	cmdInfo.Command = "go run ./cmd/" + commandName
+	runner.Cmd = "go run ./cmd/" + commandName
 
-	return cmdInfo, nil
+	return runner, nil
+}
+
+func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd *exec.Cmd) ([]io.Closer, error) {
+	if runner.Log.Disabled {
+		cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
+		return nil, nil
+	}
+
+	err := os.MkdirAll("logs", 0o755)
+	if err != nil {
+		return nil, fmt.Errorf("os: mkdir all: %w", err)
+	}
+
+	closers := make([]io.Closer, 0)
+
+	if runner.Log.SeperateFiles {
+		stdErrFile, err2 := p.createLogFile(commandName+".stderr", runner.Log.Overwrite)
+		if err2 != nil {
+			return nil, fmt.Errorf("create log file: %w", err2)
+		}
+		closers = append(closers, stdErrFile)
+
+		cmd.Stderr = io.MultiWriter(os.Stderr, stdErrFile)
+
+		stdOutFile, err2 := p.createLogFile(commandName+".stdout", runner.Log.Overwrite)
+		if err2 != nil {
+			return nil, fmt.Errorf("create log file: %w", err2)
+		}
+		closers = append(closers, stdOutFile)
+
+		cmd.Stdout = io.MultiWriter(os.Stdout, stdOutFile)
+	} else {
+		logFile, err2 := p.createLogFile(commandName, runner.Log.Overwrite)
+		if err2 != nil {
+			return nil, fmt.Errorf("create log file: %w", err2)
+		}
+		closers = append(closers, logFile)
+
+		cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+		cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+	}
+
+	return closers, nil
+}
+
+func (p *Project) createLogFile(name string, overwrite bool) (*os.File, error) {
+	filePath := filepath.Join("logs", fmt.Sprintf("%s.log", name))
+	if !overwrite {
+		logFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0644)
+		if err == nil {
+			return logFile, nil
+		}
+	}
+	logFile, err := os.Create(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("os: create: %w", err)
+	}
+	return logFile, nil
 }

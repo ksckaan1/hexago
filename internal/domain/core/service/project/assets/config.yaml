@@ -9,8 +9,11 @@ runners:
   #   env:
   #     - DB=POSTGRESQL
   #     - LOG_LEVEL=debug
-  #   seperate_log_files: true # "api.stdout.log" and "api.stderr.log" files
+  #   log:
+  #     seperate_files: true # create log files seperately as api.stderr.log and api.stdout.log
+  #     overwrite: true # create new log file when runner called
 
   # mycommand:
-  #   cmd: "go version" # overwrite default "go run ./cmd/..." command
-  #   disable_log_files: true # do not print log file
+  #   cmd: "go version" # overwrite default "go run ./cmd/mycommand/" command
+  #   log:
+  #     disabled: true # do not print log file
