@@ -7,6 +7,7 @@ import (
 
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/appcmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/doctorcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/entrypointcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
@@ -16,7 +17,6 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
-	"github.com/ksckaan1/hexago/internal/util"
 	"github.com/samber/do"
 )
 
@@ -48,6 +48,7 @@ func main() {
 	do.Provide(i, packagecmd.NewPackageLSCommand)
 	do.Provide(i, packagecmd.NewPackageCreateCommand)
 	do.Provide(i, runnercmd.NewRunnerCommand)
+	do.Provide(i, doctorcmd.NewDoctorCommand)
 
 	do.Provide(i, projectservice.New)
 	do.Provide(i, config.New)
@@ -60,9 +61,7 @@ func main() {
 
 	err = c.Run(ctx)
 	if err != nil {
-		fmt.Println("")
-		util.UILog(util.Error, util.UnwrapAllErrors(err).Error())
-		fmt.Println("")
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }

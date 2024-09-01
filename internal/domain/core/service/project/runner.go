@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"slices"
 
@@ -19,29 +18,10 @@ func (p *Project) Run(ctx context.Context, commandName string, envVars []string,
 		return fmt.Errorf("get command info: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", runner.Cmd)
-	cmd.Env = slices.Concat(os.Environ(), envVars, runner.EnvVars)
-	cmd.Stdin = os.Stdin
-
-	closers, err := p.prepareLogFiles(commandName, runner, cmd)
-	if err != nil {
-		return fmt.Errorf("prepare log files: %w", err)
-	}
-	defer func() {
-		for i := range closers {
-			closers[i].Close()
-		}
-	}()
-
-	sigCh := make(chan os.Signal, 1)
-	go func() {
-		sig := <-sigCh
-		cmd.Process.Signal(sig)
-	}()
-	signal.Notify(sigCh, os.Kill, os.Interrupt)
+	envs := slices.Concat(os.Environ(), envVars, runner.EnvVars)
 
 	if verbose {
-		fmt.Println("cmd:", cmd.String())
+		fmt.Println("cmd:", runner.Cmd)
 		fmt.Println("env:", slices.Concat(envVars, runner.EnvVars))
 		fmt.Println("log.disabled:", runner.Log.Disabled)
 		fmt.Println("log.seperate_files:", runner.Log.SeperateFiles)
@@ -49,9 +29,9 @@ func (p *Project) Run(ctx context.Context, commandName string, envVars []string,
 		fmt.Println("-----------------------------------")
 	}
 
-	err = cmd.Run()
+	err = p.runCmd(ctx, commandName, runner, envs)
 	if err != nil {
-		os.Exit(cmd.ProcessState.ExitCode())
+		return fmt.Errorf("run cmd: %w", err)
 	}
 
 	return nil
@@ -137,4 +117,31 @@ func (p *Project) createLogFile(name string, overwrite bool) (*os.File, error) {
 		return nil, fmt.Errorf("os: create: %w", err)
 	}
 	return logFile, nil
+}
+
+func (p *Project) runCmd(ctx context.Context, commandName string, runner *model.Runner, envs []string) error {
+	term, err := p.getTerminalName(ctx)
+	if err != nil {
+		return fmt.Errorf("get terminal name: %w", err)
+	}
+
+	cmd := exec.CommandContext(ctx, term, "-c", runner.Cmd)
+	cmd.Env = envs
+	cmd.Stdin = os.Stdin
+
+	closers, err := p.prepareLogFiles(commandName, runner, cmd)
+	if err != nil {
+		return fmt.Errorf("prepare log files: %w", err)
+	}
+	defer func() {
+		for i := range closers {
+			closers[i].Close()
+		}
+	}()
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("cmd: run: %w", err)
+	}
+
+	return nil
 }

@@ -1,12 +1,26 @@
 package project
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"strings"
 )
+
+func (*Project) getTerminalName(ctx context.Context) (string, error) {
+	if runtime.GOOS == "windows" {
+		return "powershell", nil
+	}
+	shellPath, ok := os.LookupEnv("SHELL")
+	if !ok {
+		return "", fmt.Errorf("SHELL env not found")
+	}
+	return strings.TrimSpace(shellPath), nil
+}
 
 func (*Project) createProjectDir(dirParam string) (string, error) {
 	projectPath, err := filepath.Abs(dirParam)

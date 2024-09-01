@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/appcmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/doctorcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/entrypointcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
@@ -44,6 +45,7 @@ type CLI struct {
 	packageLSCmd        *packagecmd.PackageLSCommand
 	packageCreateCmd    *packagecmd.PackageCreateCommand
 	runnerCmd           *runnercmd.RunnerCommand
+	doctorCmd           *doctorcmd.DoctorCommand
 }
 
 func New(i *do.Injector) (*CLI, error) {
@@ -71,6 +73,7 @@ func New(i *do.Injector) (*CLI, error) {
 		packageLSCmd:        do.MustInvoke[*packagecmd.PackageLSCommand](i),
 		packageCreateCmd:    do.MustInvoke[*packagecmd.PackageCreateCommand](i),
 		runnerCmd:           do.MustInvoke[*runnercmd.RunnerCommand](i),
+		doctorCmd:           do.MustInvoke[*doctorcmd.DoctorCommand](i),
 	}, nil
 }
 
@@ -97,6 +100,7 @@ func (c *CLI) Run(ctx context.Context) error {
 	c.packageCmd.AddCommand(c.packageLSCmd)
 	c.packageCmd.AddCommand(c.packageCreateCmd)
 	c.rootCmd.AddCommand(c.runnerCmd)
+	c.rootCmd.AddCommand(c.doctorCmd)
 
 	err := c.rootCmd.Execute(ctx)
 	if err != nil {

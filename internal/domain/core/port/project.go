@@ -38,4 +38,7 @@ type ProjectService interface {
 
 	// Runner
 	Run(ctx context.Context, command string, envVars []string, verbose bool) error
+
+	// Doctor
+	Doctor(ctx context.Context) (*dto.DoctorResult, error)
 }

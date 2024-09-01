@@ -43,3 +43,9 @@ type CreatePackageParams struct {
 	AssertInterface bool
 	IsGlobal        bool
 }
+
+type DoctorResult struct {
+	OSResult   string
+	GoResult   string
+	ImplResult string
+}
