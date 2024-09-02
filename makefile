@@ -1,2 +1,2 @@
 install:
-	@go install ./cmd/hexago
+	@go install .
