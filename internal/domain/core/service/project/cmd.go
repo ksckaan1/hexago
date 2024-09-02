@@ -45,7 +45,7 @@ func (p *Project) isEntryPointExist(ctx context.Context, targetEntryPoint string
 }
 
 func (p *Project) CreateEntryPoint(ctx context.Context, params dto.CreateEntryPointParams) (string, error) {
-	err := p.validateEntryPointName(params.PackageName)
+	err := p.ValidateEntryPointName(params.PackageName)
 	if err != nil {
 		return "", fmt.Errorf("validate entry point name: %w", err)
 	}

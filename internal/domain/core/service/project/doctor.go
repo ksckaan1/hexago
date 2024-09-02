@@ -35,7 +35,7 @@ func (p *Project) Doctor(ctx context.Context) (*dto.DoctorResult, error) {
 }
 
 func (p *Project) checkCommand(ctx context.Context, command string) (string, error) {
-	term, err := p.getTerminalName(ctx)
+	term, err := p.getTerminalName()
 	if err != nil {
 		return "", fmt.Errorf("get terminal name: %w", err)
 	}

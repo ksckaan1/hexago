@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 type DomainLSCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
+	tuilog   *tuilog.TUILog
 
 	// flags
 	flagLine *bool
@@ -34,8 +36,7 @@ func NewDomainLSCommand(i *do.Injector) (*DomainLSCommand, error) {
 			Long:    domainLSLong,
 		},
 		injector: i,
-		// flags
-		flagLine: new(bool),
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -63,6 +64,9 @@ func (c *DomainLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: get all domains: %w", err)
 	}
 

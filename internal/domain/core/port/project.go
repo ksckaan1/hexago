@@ -8,6 +8,7 @@ import (
 
 type ProjectService interface {
 	InitNewProject(ctx context.Context, params dto.InitNewProjectParams) error
+	GetModuleName(modulePath ...string) (string, error)
 
 	// Domain
 	GetAllDomains(ctx context.Context) ([]string, error)
@@ -41,4 +42,9 @@ type ProjectService interface {
 
 	// Doctor
 	Doctor(ctx context.Context) (*dto.DoctorResult, error)
+
+	// Validators
+	ValidateInstanceName(name string) error
+	ValidatePkgName(name string) error
+	ValidateEntryPointName(name string) error
 }

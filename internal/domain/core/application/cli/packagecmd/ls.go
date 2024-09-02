@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 type PackageLSCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
+	tuilog   *tuilog.TUILog
 
 	// flags
 	flagLine   *bool
@@ -29,6 +31,7 @@ func NewPackageLSCommand(i *do.Injector) (*PackageLSCommand, error) {
 			Long:    `List Packages`,
 		},
 		injector: i,
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -61,6 +64,9 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 	if *c.flagAll {
 		globalPackages, err := projectService.GetAllPackages(cmd.Context(), true)
 		if err != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
 			return fmt.Errorf("project service: get all packages: %w", err)
 		}
 
@@ -70,8 +76,11 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 		allPackages = append(allPackages, globalPackages...)
 
-		packages, err := projectService.GetAllPackages(cmd.Context(), *c.flagGlobal)
+		packages, err := projectService.GetAllPackages(cmd.Context(), false)
 		if err != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
 			return fmt.Errorf("project service: get all packages: %w", err)
 		}
 
@@ -84,6 +93,9 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 	} else {
 		packages, err := projectService.GetAllPackages(cmd.Context(), *c.flagGlobal)
 		if err != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
 			return fmt.Errorf("project service: get all packages: %w", err)
 		}
 

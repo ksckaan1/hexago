@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
-	"github.com/ksckaan1/hexago/internal/util"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -17,9 +17,10 @@ type Commander interface {
 type DoctorCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
+	tuilog   *tuilog.TUILog
 }
 
-const doctorLong = `doctor command check dependencies.`    
+const doctorLong = `doctor command check dependencies.`
 
 func NewDoctorCommand(i *do.Injector) (*DoctorCommand, error) {
 	return &DoctorCommand{
@@ -30,6 +31,7 @@ func NewDoctorCommand(i *do.Injector) (*DoctorCommand, error) {
 			Long:    doctorLong,
 		},
 		injector: i,
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -56,24 +58,27 @@ func (c *DoctorCommand) runner(cmd *cobra.Command, args []string) error {
 
 	result, err := projectService.Doctor(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: doctor: %w", err)
 	}
 
 	fmt.Println("")
-	util.UILog(util.Info, result.OSResult)
+	c.tuilog.Info(result.OSResult, "os/arch")
 	fmt.Println("")
 
 	if result.GoResult != "" {
-		util.UILog(util.Success, result.GoResult, "go")
+		c.tuilog.Success(result.GoResult, "go")
 	} else {
-		util.UILog(util.Error, "not found", "go")
+		c.tuilog.Error("not found", "go")
 	}
 	fmt.Println("")
 
 	if result.ImplResult != "" {
-		util.UILog(util.Success, "installed", "impl")
+		c.tuilog.Success("installed", "impl")
 	} else {
-		util.UILog(util.Error, "not found", "impl")
+		c.tuilog.Error("not found", "impl")
 	}
 	fmt.Println("")
 

@@ -38,7 +38,7 @@ func (p *Project) isDomainExist(ctx context.Context, targetDomain string) error 
 	}
 
 	if !slices.Contains(domains, targetDomain) {
-		return fmt.Errorf("target domain not found: %s", targetDomain)
+		return fmt.Errorf("target domain not found: %w (%s)", dto.ErrDomainNotFound, targetDomain)
 	}
 
 	return nil

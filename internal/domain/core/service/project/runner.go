@@ -120,7 +120,7 @@ func (p *Project) createLogFile(name string, overwrite bool) (*os.File, error) {
 }
 
 func (p *Project) runCmd(ctx context.Context, commandName string, runner *model.Runner, envs []string) error {
-	term, err := p.getTerminalName(ctx)
+	term, err := p.getTerminalName()
 	if err != nil {
 		return fmt.Errorf("get terminal name: %w", err)
 	}

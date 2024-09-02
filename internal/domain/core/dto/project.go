@@ -3,6 +3,7 @@ package dto
 type InitNewProjectParams struct {
 	ProjectDirectory string
 	ModuleName       string
+	CreateModule     bool
 }
 
 type CreateDomainParams struct {

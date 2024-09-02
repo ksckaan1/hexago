@@ -1,17 +1,17 @@
 package project
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 )
 
-func (*Project) getTerminalName(ctx context.Context) (string, error) {
+func (*Project) getTerminalName() (string, error) {
 	if runtime.GOOS == "windows" {
 		return "powershell", nil
 	}
@@ -29,21 +29,8 @@ func (*Project) createProjectDir(dirParam string) (string, error) {
 	}
 
 	stat, err := os.Stat(projectPath)
-	if !os.IsNotExist(err) {
-		if !stat.IsDir() {
-			return "", fmt.Errorf("stat: is dir: %w", errors.New("dir must be folder"))
-		}
-
-		projectFiles := filepath.Join(projectPath, "*")
-
-		glob, err := filepath.Glob(projectFiles)
-		if err != nil {
-			return "", fmt.Errorf("filepath: glob: %w", err)
-		}
-
-		if len(glob) > 0 {
-			return "", fmt.Errorf("check project folder is empty: %w", errors.New("project folder must be empty"))
-		}
+	if !os.IsNotExist(err) && !stat.IsDir() {
+		return "", fmt.Errorf("stat: is dir: %w", dto.ErrDirMustBeFolder)
 	}
 
 	if os.IsNotExist(err) {
@@ -119,27 +106,27 @@ func (*Project) createProjectSubDirs() error {
 
 var instanceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]{0,}$`)
 
-func (*Project) validateInstanceName(instanceType, instanceName string) error {
+func (*Project) ValidateInstanceName(instanceName string) error {
 	if !instanceNameRgx.MatchString(instanceName) {
-		return fmt.Errorf("invalid %[1]s name: %[2]s, %[1]s name must be \"PascalCase\"", instanceType, instanceName)
+		return dto.ErrInvalidInstanceName
 	}
 	return nil
 }
 
 var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
 
-func (*Project) validatePkgName(pkgName string) error {
+func (*Project) ValidatePkgName(pkgName string) error {
 	if !pkgNameRgx.MatchString(pkgName) {
-		return fmt.Errorf("invalid package name: %s, package name must be \"lowercase\"", pkgName)
+		return dto.ErrInvalidPkgName
 	}
 	return nil
 }
 
-var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
+var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9\-]{0,}$`)
 
-func (*Project) validateEntryPointName(entryPointName string) error {
+func (*Project) ValidateEntryPointName(entryPointName string) error {
 	if !pkgNameRgx.MatchString(entryPointName) {
-		return fmt.Errorf("invalid entry point name: %s, entry point name must be \"lowercase\" \"lower_case\" or \"lower-case\"", entryPointName)
+		return dto.ErrInvalidCmdName
 	}
 	return nil
 }

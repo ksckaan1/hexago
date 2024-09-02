@@ -17,6 +17,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	ctx := context.Background()
 
 	i := do.New()
+	do.Provide(i, tuilog.New)
 	do.Provide(i, cli.New)
 	do.Provide(i, cli.NewRootCommand)
 	do.Provide(i, cli.NewInitCommand)
@@ -61,7 +63,6 @@ func main() {
 
 	err = c.Run(ctx)
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

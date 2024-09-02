@@ -1,12 +1,14 @@
 package infracmd
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
-	"github.com/ksckaan1/hexago/internal/util"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -15,23 +17,19 @@ import (
 type InfraCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
-	// flags
-	flagPkgName         *string
-	flagPortName        *string
-	flagNoPort          *bool
-	flagAssertInterface *bool
+	tuilog   *tuilog.TUILog
 }
 
 func NewInfraCreateCommand(i *do.Injector) (*InfraCreateCommand, error) {
 	return &InfraCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
-			Example: "hexago infra new <InfraName>",
+			Example: "hexago infra new",
 			Short:   "Create a infrastructure",
 			Long:    `Create a infrastructure`,
-			Args:    cobra.ExactArgs(1),
 		},
 		injector: i,
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -48,10 +46,6 @@ func (c *InfraCreateCommand) AddCommand(cmds ...Commander) {
 
 func (c *InfraCreateCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago infra new <InfraName> -p <infraname>")
-	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago infra new <InfraName> -i <domainname>:<PortName>")
-	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago infra new <InfraName> -n")
-	c.flagAssertInterface = c.cmd.Flags().BoolP("assert-port", "a", false, "hexago infra new <InfraName> -i <domainname>:<PortName> -a")
 }
 
 func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -67,70 +61,184 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 
 	err = cfg.Load(".hexago/config.yaml")
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("load config: %w", err)
+	}
+
+	var infraName string
+
+	if len(args) > 0 {
+		infraName = args[0]
+	}
+
+	err = huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("What’s infrastructure name?").
+				Placeholder("InfraName").
+				Validate(projectService.ValidateInstanceName).
+				Description("Infrastructure name must be PascalCase").
+				Value(&infraName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return fmt.Errorf("input infrastructure name: %w", err)
+	}
+
+	pkgName, err := c.selectPkgName(projectService, infraName)
+	if err != nil {
+		return fmt.Errorf("select pkg name: %w", err)
 	}
 
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: get all domains: %w", err)
 	}
 
-	if *c.flagNoPort {
-		*c.flagPortName = ""
+	allPorts := make([]string, 0)
+
+	for i := range domains {
+		ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
+		if err != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
+			return fmt.Errorf("get all ports: %w", err)
+		}
+		for j := range ports {
+			allPorts = append(allPorts, domains[i]+":"+ports[j])
+		}
 	}
 
-	if !*c.flagNoPort && *c.flagPortName == "" {
-		allPorts := make([]string, 0)
-
-		for i := range domains {
-			ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
-			if err != nil {
-				return fmt.Errorf("get all ports: %w", err)
-			}
-			for j := range ports {
-				allPorts = append(allPorts, domains[i]+":"+ports[j])
-			}
-		}
-
-		selectPortList := []huh.Option[string]{
-			huh.NewOption[string]("Do not implement!", ""),
-		}
-
-		selectPortList = append(selectPortList, lo.Map(allPorts, func(d string, _ int) huh.Option[string] {
-			return huh.NewOption(d, d)
-		})...)
-
-		err2 := huh.NewForm(
-			huh.NewGroup(
-				huh.NewSelect[string]().
-					Title("Select a port.").
-					Options(
-						selectPortList...,
-					).
-					Value(c.flagPortName),
-			).WithShowHelp(true),
-		).Run()
-		if err2 != nil {
-			return fmt.Errorf("select a port: %w", err2)
-		}
+	portInfo, err := c.selectPort(allPorts, infraName)
+	if err != nil {
+		return fmt.Errorf("select port: %w", err)
 	}
 
 	infraFile, err := projectService.CreateInfrastructure(
 		cmd.Context(),
 		dto.CreateInfraParams{
 			StructName:      args[0],
-			PackageName:     *c.flagPkgName,
-			PortParam:       *c.flagPortName,
-			AssertInterface: *c.flagAssertInterface,
+			PackageName:     pkgName,
+			PortParam:       portInfo.portName,
+			AssertInterface: portInfo.assertInterface,
 		},
 	)
 	if err != nil {
+		fmt.Println("")
+		if errors.Is(err, dto.ErrInvalidInstanceName) {
+			c.tuilog.Error("Infrastructure name not valid\nMust be <PascalCase>")
+		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
+		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+			c.tuilog.Error("Template can not parsed")
+		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+			c.tuilog.Error("Template can not execute\n" + err2.Message)
+		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
+		} else {
+			c.tuilog.Error(err.Error())
+		}
+		fmt.Println("")
 		return fmt.Errorf("project service: create infrastructure: %w", err)
 	}
 
 	fmt.Println("")
-	util.UILog(util.Success, "infrastructure created\n"+infraFile)
+	c.tuilog.Success("infrastructure created\n" + infraFile)
 	fmt.Println("")
 
 	return nil
+}
+
+func (c *InfraCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+	var pkgName string
+	err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("What’s folder (pkg) name?").
+				Placeholder(strings.ToLower(instanceName)).
+				Validate(func(s string) error {
+					if s == "" {
+						return nil
+					}
+					return projectService.ValidatePkgName(s)
+				}).
+				Description("Folder name must be lowercase").
+				Value(&pkgName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return "", fmt.Errorf("input pkg name: %w", err)
+	}
+	return pkgName, nil
+}
+
+type portInfo struct {
+	portName        string
+	assertInterface bool
+}
+
+func (c *InfraCreateCommand) selectPort(allPorts []string, instanceName string) (*portInfo, error) {
+	if len(allPorts) == 0 {
+		return &portInfo{}, nil
+	}
+
+	selectPortList := []huh.Option[string]{
+		huh.NewOption[string]("Do not implement!", ""),
+	}
+
+	selectPortList = append(selectPortList, lo.Map(allPorts, func(d string, _ int) huh.Option[string] {
+		return huh.NewOption(d, d)
+	})...)
+
+	var portName string
+
+	err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a port.").
+				Options(
+					selectPortList...,
+				).
+				Value(&portName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return nil, fmt.Errorf("select a port: %w", err)
+	}
+
+	assertInterface := false
+
+	if portName != "" {
+		err = huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("Do you want to assert port?").
+					Description(
+						fmt.Sprintf(
+							"var _ %sport.%s = (*%s)(nil)",
+							strings.Split(portName, ":")[0],
+							strings.Split(portName, ":")[1],
+							instanceName,
+						),
+					).
+					Affirmative("Yes").
+					Negative("No").
+					Value(&assertInterface),
+			).WithShowHelp(true),
+		).Run()
+		if err != nil {
+			return nil, fmt.Errorf("confirm assert port: %w", err)
+		}
+	}
+
+	return &portInfo{
+		portName:        portName,
+		assertInterface: assertInterface,
+	}, nil
 }

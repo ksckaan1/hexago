@@ -1,4 +1,4 @@
-package util
+package tuilog
 
 import (
 	"fmt"
@@ -6,31 +6,31 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type UILogType uint
+type logType uint
 
 const (
-	Info UILogType = iota
-	Success
-	Warning
-	Error
+	infoType logType = iota
+	successType
+	warningType
+	errorType
 )
 
-func UILog(lt UILogType, msg string, title ...string) {
+func (*TUILog) log(lt logType, msg string, title ...string) {
 	var (
 		logColor string
 		logTitle string
 		logIcon  string
 	)
 	switch lt {
-	case Success:
+	case successType:
 		logColor = "#32CD32"
 		logTitle = "Success"
 		logIcon = "✓"
-	case Warning:
+	case warningType:
 		logColor = "#FFA500"
 		logTitle = "Warning"
 		logIcon = "�"
-	case Error:
+	case errorType:
 		logColor = "#FF0000"
 		logTitle = "Error"
 		logIcon = "✗"

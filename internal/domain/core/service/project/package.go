@@ -54,12 +54,12 @@ func (p *Project) CreatePackage(ctx context.Context, params dto.CreatePackagePar
 		params.PackageName = strings.ToLower(params.StructName)
 	}
 
-	err := p.validateInstanceName("package", params.StructName)
+	err := p.ValidateInstanceName(params.StructName)
 	if err != nil {
 		return "", fmt.Errorf("validate package name: %w", err)
 	}
 
-	err = p.validatePkgName(params.PackageName)
+	err = p.ValidatePkgName(params.PackageName)
 	if err != nil {
 		return "", fmt.Errorf("validate pkg name: %w", err)
 	}

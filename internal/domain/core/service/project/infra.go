@@ -50,12 +50,12 @@ func (p *Project) CreateInfrastructure(ctx context.Context, params dto.CreateInf
 		params.PackageName = strings.ToLower(params.StructName)
 	}
 
-	err := p.validateInstanceName("infrastructure", params.StructName)
+	err := p.ValidateInstanceName(params.StructName)
 	if err != nil {
 		return "", fmt.Errorf("validate service name: %w", err)
 	}
 
-	err = p.validatePkgName(params.PackageName)
+	err = p.ValidatePkgName(params.PackageName)
 	if err != nil {
 		return "", fmt.Errorf("validate pkg name: %w", err)
 	}

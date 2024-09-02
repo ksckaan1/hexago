@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,7 +9,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
-	"github.com/ksckaan1/hexago/internal/util"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -19,9 +20,7 @@ var _ Commander = (*InitCommand)(nil)
 type InitCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
-
-	// Flags
-	flagModuleName *string
+	tuilog   *tuilog.TUILog
 }
 
 const initLongDescription = `init command initialize a hexagonal Go project.
@@ -31,7 +30,6 @@ In the other side, it initialize traditional Go hexagonal folder structure.
 Requires empty folder to init new project.`
 
 const initExamples = `hexago init <project-name> (prompts module name interactively)
-hexago init <project-name> -m <module-name>
 `
 
 func NewInitCommand(i *do.Injector) (*InitCommand, error) {
@@ -44,8 +42,8 @@ func NewInitCommand(i *do.Injector) (*InitCommand, error) {
 			Args:    cobra.ExactArgs(1),
 		},
 		injector: i,
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 		// flags
-		flagModuleName: new(string),
 	}, nil
 }
 
@@ -62,47 +60,80 @@ func (c *InitCommand) AddCommand(cmds ...Commander) {
 
 func (c *InitCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagModuleName = c.cmd.Flags().StringP("module-name", "m", "", "hexago init <project-name> -m <module-name>")
 }
 
 func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
-	if *c.flagModuleName == "" {
-		defaultName := filepath.Base(args[0])
-
-		if defaultName == "." {
-			abs, err := filepath.Abs(defaultName)
-			if err != nil {
-				return fmt.Errorf("filepath: abs: %w", err)
-			}
-
-			defaultName = filepath.Base(abs)
-		}
-
-		err := huh.NewInput().
-			Title("What’s module name?").
-			Placeholder(defaultName).
-			Description("If you leave it blank, it will have the same name as the project directory").
-			Value(c.flagModuleName).
-			Run()
-		if err != nil {
-			return fmt.Errorf("input module name: %w", err)
-		}
-
-		if strings.TrimSpace(*c.flagModuleName) == "" {
-			*c.flagModuleName = defaultName
-		}
-	}
-
 	projectService, err := do.Invoke[port.ProjectService](c.injector)
 	if err != nil {
 		return fmt.Errorf("invoke project service: %w", err)
 	}
 
+	createModule := true
+
+	existingModuleName, err := projectService.GetModuleName(filepath.Join(args[0], "go.mod"))
+	if err == nil {
+		err = huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("Do you want to overwrite the existing module?").
+					Description("existing -> " + existingModuleName).
+					Affirmative("Yes").
+					Negative("No").
+					Value(&createModule),
+			).WithShowHelp(true),
+		).Run()
+		if err != nil {
+			return fmt.Errorf("confirm module create: %w", err)
+		}
+	}
+
+	var moduleName string
+	if createModule {
+		defaultModuleName := filepath.Base(args[0])
+
+		if defaultModuleName == "." {
+			abs, err := filepath.Abs(defaultModuleName)
+			if err != nil {
+				return fmt.Errorf("filepath: abs: %w", err)
+			}
+
+			defaultModuleName = filepath.Base(abs)
+		}
+
+		err = huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("What’s module name?").
+					Placeholder(defaultModuleName).
+					Description("If you leave it blank, it will have the same name as the project directory").
+					Value(&moduleName),
+			).WithShowHelp(true),
+		).Run()
+		if err != nil {
+			return fmt.Errorf("input module name: %w", err)
+		}
+
+		if strings.TrimSpace(moduleName) == "" {
+			moduleName = defaultModuleName
+		}
+	}
+
 	err = projectService.InitNewProject(cmd.Context(), dto.InitNewProjectParams{
 		ProjectDirectory: args[0],
-		ModuleName:       *c.flagModuleName,
+		ModuleName:       moduleName,
+		CreateModule:     createModule,
 	})
+
 	if err != nil {
+		fmt.Println("")
+		if errors.Is(err, dto.ErrDirMustBeFolder) {
+			c.tuilog.Error("project dir must be folder")
+		} else if err2, ok := lo.ErrorsAs[dto.ErrInitGoModule](err); ok {
+			c.tuilog.Error(err2.Message)
+		} else {
+			c.tuilog.Error(err.Error())
+		}
+		fmt.Println("")
 		return fmt.Errorf("project service: init new project: %w", err)
 	}
 
@@ -112,7 +143,7 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("")
-	util.UILog(util.Success, msg, "Project Initialized")
+	c.tuilog.Success(msg, "Project Initialized")
 	fmt.Println("")
 
 	return nil

@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ import (
 type AppLSCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
+	tuilog   *tuilog.TUILog
 
 	// flags
 	flagLine   *bool
@@ -30,8 +32,7 @@ func NewAppLSCommand(i *do.Injector) (*AppLSCommand, error) {
 			Long:    `List Applications`,
 		},
 		injector: i,
-		// flags
-		flagLine: new(bool),
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -60,10 +61,16 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: get all domains: %w", err)
 	}
 
 	if len(domains) == 0 {
+		fmt.Println("")
+		c.tuilog.Error("No domains found.\nA domain needs to be created first")
+		fmt.Println("")
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
@@ -91,10 +98,16 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 				).WithShowHelp(true),
 			).Run()
 			if err2 != nil {
+				fmt.Println("")
+				c.tuilog.Error("Select a domain: " + err2.Error())
+				fmt.Println("")
 				return fmt.Errorf("select a domain: %w", err2)
 			}
 		}
 	} else if !slices.Contains(domains, *c.flagDomain) {
+		fmt.Println("")
+		c.tuilog.Error("Domain not found: " + *c.flagDomain)
+		fmt.Println("")
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
@@ -107,6 +120,9 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 		apps, err2 := projectService.GetAllApplications(cmd.Context(), domains[i])
 		if err2 != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
 			return fmt.Errorf("project service: get all apps: %w", err2)
 		}
 

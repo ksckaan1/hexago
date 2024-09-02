@@ -1,13 +1,14 @@
 package appcmd
 
 import (
+	"errors"
 	"fmt"
-	"slices"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
-	"github.com/ksckaan1/hexago/internal/util"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -16,24 +17,19 @@ import (
 type AppCreateCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
-	// flags
-	flagDomain          *string
-	flagPkgName         *string
-	flagPortName        *string
-	flagNoPort          *bool
-	flagAssertInterface *bool
+	tuilog   *tuilog.TUILog
 }
 
 func NewAppCreateCommand(i *do.Injector) (*AppCreateCommand, error) {
 	return &AppCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
-			Example: "hexago app new <ApplicationName>",
+			Example: "hexago app new",
 			Short:   "Create an application",
 			Long:    `Create an application`,
-			Args:    cobra.ExactArgs(1),
 		},
 		injector: i,
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -50,11 +46,6 @@ func (c *AppCreateCommand) AddCommand(cmds ...Commander) {
 
 func (c *AppCreateCommand) init() {
 	c.cmd.RunE = c.runner
-	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago app new <ApplicationName> -d <domainname>")
-	c.flagPkgName = c.cmd.Flags().StringP("pkg", "p", "", "hexago app new <ApplicationName> -p <applicationame>")
-	c.flagPortName = c.cmd.Flags().StringP("impl", "i", "", "hexago app new <ApplicationName> -i <domainname:PortName>")
-	c.flagNoPort = c.cmd.Flags().BoolP("no-port", "n", false, "hexago app new <ApplicationName> -n")
-	c.flagAssertInterface = c.cmd.Flags().BoolP("assert-port", "a", false, "hexago app new <ApplicationName> -i <domainname>:<PortName> -a")
 }
 
 func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -70,102 +61,220 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 
 	err = cfg.Load(".hexago/config.yaml")
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("load config: %w", err)
 	}
 
 	domains, err := projectService.GetAllDomains(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: get all domains: %w", err)
 	}
 
 	if len(domains) == 0 {
+		fmt.Println("")
+		c.tuilog.Error("No domains found.\nA domain needs to be created first")
+		fmt.Println("")
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
-	if *c.flagDomain == "" {
-		if len(domains) == 1 {
-			*c.flagDomain = domains[0]
-		} else {
+	var appName string
 
-			selectList := lo.Map(domains, func(d string, _ int) huh.Option[string] {
-				return huh.NewOption(d, d)
-			})
-
-			err2 := huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Select a domain.").
-						Options(
-							selectList...,
-						).
-						Value(c.flagDomain),
-				).WithShowHelp(true),
-			).Run()
-			if err2 != nil {
-				return fmt.Errorf("select a domain: %w", err2)
-			}
-		}
-	} else if !slices.Contains(domains, *c.flagDomain) {
-		return fmt.Errorf("domain not found: %s", *c.flagDomain)
+	if len(args) > 0 {
+		appName = args[0]
 	}
 
-	if *c.flagNoPort {
-		*c.flagPortName = ""
+	err = huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("What’s application name?").
+				Placeholder("AppName").
+				Validate(projectService.ValidateInstanceName).
+				Description("Application name must be PascalCase").
+				Value(&appName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return fmt.Errorf("input application name: %w", err)
 	}
 
-	if !*c.flagNoPort && *c.flagPortName == "" {
-		allPorts := make([]string, 0)
+	pkgName, err := c.selectPkgName(projectService, appName)
+	if err != nil {
+		return fmt.Errorf("select pkg name: %w", err)
+	}
 
-		for i := range domains {
-			ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
-			if err != nil {
-				return fmt.Errorf("get all ports: %w", err)
-			}
-			for j := range ports {
-				allPorts = append(allPorts, domains[i]+":"+ports[j])
-			}
-		}
-
-		selectPortList := []huh.Option[string]{
-			huh.NewOption[string]("Do not implement!", ""),
-		}
-
-		selectPortList = append(selectPortList, lo.Map(allPorts, func(d string, _ int) huh.Option[string] {
+	var domainName string
+	if len(domains) == 1 {
+		domainName = domains[0]
+	} else {
+		selectList := lo.Map(domains, func(d string, _ int) huh.Option[string] {
 			return huh.NewOption(d, d)
-		})...)
+		})
 
 		err2 := huh.NewForm(
 			huh.NewGroup(
 				huh.NewSelect[string]().
-					Title("Select a port.").
+					Title("Select a domain.").
 					Options(
-						selectPortList...,
+						selectList...,
 					).
-					Value(c.flagPortName),
+					Value(&domainName),
 			).WithShowHelp(true),
 		).Run()
 		if err2 != nil {
-			return fmt.Errorf("select a port: %w", err2)
+			fmt.Println("")
+			c.tuilog.Error("Select a domain: " + err2.Error())
+			fmt.Println("")
+			return fmt.Errorf("select a domain: %w", err2)
 		}
 	}
 
-	serviceFile, err := projectService.CreateApplication(
+	allPorts := make([]string, 0)
+
+	for i := range domains {
+		ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
+		if err != nil {
+			fmt.Println("")
+			c.tuilog.Error(err.Error())
+			fmt.Println("")
+			return fmt.Errorf("get all ports: %w", err)
+		}
+		for j := range ports {
+			allPorts = append(allPorts, domains[i]+":"+ports[j])
+		}
+	}
+
+	portInfo, err := c.selectPort(allPorts, appName)
+	if err != nil {
+		return fmt.Errorf("select port: %w", err)
+	}
+
+	applicationFile, err := projectService.CreateApplication(
 		cmd.Context(),
 		dto.CreateApplicationParams{
-			TargetDomain:    *c.flagDomain,
-			StructName:      args[0],
-			PackageName:     *c.flagPkgName,
-			PortParam:       *c.flagPortName,
-			AssertInterface: *c.flagAssertInterface,
+			TargetDomain:    domainName,
+			StructName:      appName,
+			PackageName:     pkgName,
+			PortParam:       portInfo.portName,
+			AssertInterface: portInfo.assertInterface,
 		},
 	)
 	if err != nil {
+		fmt.Println("")
+		if errors.Is(err, dto.ErrInvalidInstanceName) {
+			c.tuilog.Error("Application name not valid\nMust be <PascalCase>")
+		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
+		} else if errors.Is(err, dto.ErrDomainNotFound) {
+			c.tuilog.Error("Domain not found")
+		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+			c.tuilog.Error("Template can not parsed")
+		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+			c.tuilog.Error("Template can not execute\n" + err2.Message)
+		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
+		} else {
+			c.tuilog.Error(err.Error())
+		}
+		fmt.Println("")
 		return fmt.Errorf("project service: create application: %w", err)
 	}
 
 	fmt.Println("")
-	util.UILog(util.Success, "application created\n"+serviceFile)
+	c.tuilog.Success("Application created\n" + applicationFile)
 	fmt.Println("")
 
 	return nil
+}
+
+func (c *AppCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+	var pkgName string
+	err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("What’s folder (pkg) name?").
+				Placeholder(strings.ToLower(instanceName)).
+				Validate(func(s string) error {
+					if s == "" {
+						return nil
+					}
+					return projectService.ValidatePkgName(s)
+				}).
+				Description("Folder name must be lowercase").
+				Value(&pkgName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return "", fmt.Errorf("input pkg name: %w", err)
+	}
+	return pkgName, nil
+}
+
+type portInfo struct {
+	portName        string
+	assertInterface bool
+}
+
+func (c *AppCreateCommand) selectPort(allPorts []string, instanceName string) (*portInfo, error) {
+	if len(allPorts) == 0 {
+		return &portInfo{}, nil
+	}
+
+	selectPortList := []huh.Option[string]{
+		huh.NewOption[string]("Do not implement!", ""),
+	}
+
+	selectPortList = append(selectPortList, lo.Map(allPorts, func(d string, _ int) huh.Option[string] {
+		return huh.NewOption(d, d)
+	})...)
+
+	var portName string
+
+	err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a port.").
+				Options(
+					selectPortList...,
+				).
+				Value(&portName),
+		).WithShowHelp(true),
+	).Run()
+	if err != nil {
+		return nil, fmt.Errorf("select a port: %w", err)
+	}
+
+	assertInterface := false
+
+	if portName != "" {
+		err = huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("Do you want to assert port?").
+					Description(
+						fmt.Sprintf(
+							"var _ %sport.%s = (*%s)(nil)",
+							strings.Split(portName, ":")[0],
+							strings.Split(portName, ":")[1],
+							instanceName,
+						),
+					).
+					Affirmative("Yes").
+					Negative("No").
+					Value(&assertInterface),
+			).WithShowHelp(true),
+		).Run()
+		if err != nil {
+			return nil, fmt.Errorf("confirm assert port: %w", err)
+		}
+	}
+
+	return &portInfo{
+		portName:        portName,
+		assertInterface: assertInterface,
+	}, nil
 }

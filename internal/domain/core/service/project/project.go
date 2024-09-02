@@ -32,9 +32,11 @@ func (p *Project) InitNewProject(ctx context.Context, params dto.InitNewProjectP
 		return fmt.Errorf("create hexago configs: %w", err)
 	}
 
-	err = p.initGoModule(ctx, params.ModuleName)
-	if err != nil {
-		return fmt.Errorf("init go module: %w", err)
+	if params.CreateModule {
+		err = p.initGoModule(ctx, params.ModuleName)
+		if err != nil {
+			return fmt.Errorf("init go module: %w", err)
+		}
 	}
 
 	err = p.createProjectSubDirs()

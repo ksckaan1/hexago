@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/port"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 type EntryPointLSCommand struct {
 	cmd      *cobra.Command
 	injector *do.Injector
+	tuilog   *tuilog.TUILog
 
 	// flags
 	flagLine *bool
@@ -27,8 +29,7 @@ func NewEntryPointLSCommand(i *do.Injector) (*EntryPointLSCommand, error) {
 			Long:    `List Entry Points`,
 		},
 		injector: i,
-		// flags
-		flagLine: new(bool),
+		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 	}, nil
 }
 
@@ -56,6 +57,9 @@ func (c *EntryPointLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 	entryPoints, err := projectService.GetAllEntryPoints(cmd.Context())
 	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
 		return fmt.Errorf("project service: get all entry points: %w", err)
 	}
 

@@ -3,6 +3,7 @@ package project
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
 )
 
@@ -77,7 +79,7 @@ func (p *Project) generateGoInitFile(ctx context.Context, dir, structName, pkgNa
 		"AssertInterface": assertInterface,
 	})
 	if err != nil {
-		return "", fmt.Errorf("template: execute: %w", err)
+		return "", fmt.Errorf("template: execute: %w", dto.ErrTemplateCanNotExecute{Message: err.Error()})
 	}
 
 	err = os.WriteFile(targetFilePath, buf.Bytes(), 0o644)
@@ -107,7 +109,7 @@ func (p *Project) parseTemplate(templateMode, templateName string) (*template.Te
 
 		tmpl, err := template.ParseFiles(templatePath)
 		if err != nil {
-			return nil, fmt.Errorf("template: parse files: %w", err)
+			return nil, fmt.Errorf("template: parse files: %w", errors.Join(err, dto.ErrTemplateCanNotParsed))
 		}
 
 		return tmpl, nil
@@ -252,7 +254,7 @@ func (p *Project) getInterfaceInfo(ctx context.Context, interfaceParam string) (
 		interfaceName = sm[2]
 	}
 
-	moduleName, err := p.getModuleName()
+	moduleName, err := p.GetModuleName()
 	if err != nil {
 		return nil, fmt.Errorf("get module name: %w", err)
 	}
@@ -285,7 +287,7 @@ func (p *Project) formatGoFiles(ctx context.Context, goFilePaths ...string) erro
 
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("cmd: run: %w (%s)", err, stdErr.String())
+		return fmt.Errorf("cmd: run: %w", dto.ErrFormatGoFile{Message: stdErr.String()})
 	}
 
 	return nil

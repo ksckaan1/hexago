@@ -51,7 +51,7 @@ func (p *Project) isApplicationExist(ctx context.Context, targetDomain, targetAp
 }
 
 func (p *Project) CreateApplication(ctx context.Context, params dto.CreateApplicationParams) (string, error) {
-	err := p.validateInstanceName("application", params.StructName)
+	err := p.ValidateInstanceName(params.StructName)
 	if err != nil {
 		return "", fmt.Errorf("validate instance name: %w", err)
 	}
@@ -60,7 +60,7 @@ func (p *Project) CreateApplication(ctx context.Context, params dto.CreateApplic
 		params.PackageName = strings.ToLower(params.StructName)
 	}
 
-	err = p.validatePkgName(params.PackageName)
+	err = p.ValidatePkgName(params.PackageName)
 	if err != nil {
 		return "", fmt.Errorf("validate pkg name: %w", err)
 	}
