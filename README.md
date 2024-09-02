@@ -17,3 +17,54 @@ Here it is nice blog posts about hexagonal architecture:
 - https://medium.com/@janishar.ali/how-to-architecture-good-go-backend-rest-api-services-14cc4730c05b
 
 ## Example Folder Structure
+
+```
+.
+├── .hexago/
+│   ├── config.yaml
+│   └── templates/
+├── cmd/
+│   └── api/
+│       └── main.go
+├── config/
+├── doc/
+├── go.mod
+├── internal/
+│   ├── domain/
+│   │   └── core/
+│   │       ├── application/
+│   │       │   ├── restapi/
+│   │       │   │   └── restapi.go
+│   │       │   └── rpcapi/
+│   │       │       └── rpcapi.go
+│   │       ├── dto/
+│   │       │   └── order.go
+│   │       ├── model/
+│   │       │   └── order.go
+│   │       ├── port/
+│   │       │   └── order.go
+│   │       └── service/
+│   │           ├── cancelorder/
+│   │           │   └── cancelorder.go
+│   │           ├── createorder/
+│   │           │   └── createorder.go
+│   │           ├── getorder/
+│   │           │   └── getorder.go
+│   │           ├── listorders/
+│   │           │   └── listorders.go
+│   │           └── updateorder/
+│   │               └── updateorder.go
+│   ├── infrastructure/
+│   │   ├── cache/
+│   │   │   └── cache.go
+│   │   └── orderrepository/
+│   │       └── orderrepository.go
+│   └── pkg/
+│       ├── authtoken/
+│       │   └── authtoken.go
+│       └── uniqueid/
+│           └── uniqueid.go
+├── pkg/
+├── schemas/
+└── scripts/
+```
