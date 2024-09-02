@@ -4,7 +4,7 @@
 ## Installation
 
 ```sh
-go install github.com/ksckaan1/hexago/
+go install github.com/ksckaan1/hexago@latest
 ```
 
 ## Get Started
