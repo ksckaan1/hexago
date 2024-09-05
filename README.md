@@ -1,4 +1,3 @@
-# Work In Progress
 ![Hexago](doc/hexago.png)
 
 ## Installation
