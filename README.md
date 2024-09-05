@@ -307,7 +307,7 @@ Entry points are the places where a go application will start running. entry poi
 
   This command creates a new entry point under the `cmd/<entry-point-name>` directory.
 
-There is only one step creating an entry point.
+  There is only one step creating an entry point.
 
   - Insert entry point folder name (kebab-case)
 
@@ -339,7 +339,7 @@ There is only one step creating an entry point.
   
   https://github.com/user-attachments/assets/2f543ce7-fdaf-4970-9324-59027dcca179
 
-  ### `run`
+### `run`
 This command can be used for two different purposes. the `run` command create a log file under the `logs` directory defaultly.
 
 - Firstly, if there is an entry point in your project, it can be used to run this entry point.
