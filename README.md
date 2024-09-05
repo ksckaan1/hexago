@@ -412,10 +412,10 @@ This command can be used for two different purposes. the `run` command create a 
 
   ```yaml
   runners:
-  custom-command:
-    cmd: "go version" # overwrite default "go run ./cmd/mycommand/" command
-    log:
-      disabled: true # do not print log file
+    custom-command:
+      cmd: "go version" # overwrite default "go run ./cmd/mycommand/" command
+      log:
+        disabled: true # do not print log file
   ```
 
   When you run `hexago run custom-command` command, you will get the following result.
