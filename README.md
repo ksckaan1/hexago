@@ -84,17 +84,20 @@ The `doctor` command displays the status of dependencies that are required for h
 
 **Example:**
 
-doctor command preview
+https://github.com/user-attachments/assets/eebc095e-b806-41b7-bad7-0fb04cd379c7
+
+
 
 ### `init`
-The `init` command initialize a Hexago project. This command creates a domain named `core` by default.
+The `init` command initialize a Hexago project. This command creates a domain named `core` by default. Promts go module name. If leaves blank, uses project folder name as lowercase defaultly.
 
 ```sh
 hexago init <project-path>
 ```
 **Example:**
 
-init command preview
+https://github.com/user-attachments/assets/b4ffd97a-a77a-4545-ae3b-41b168f32221
+
 
 ### `domain`
 This is the parent command for all domain-related operations.
@@ -109,7 +112,7 @@ If the project does not contain any domain, a new `service` and `app` cannot be 
   hexago domain new
   ```
 
-  domain new command preview
+  https://github.com/user-attachments/assets/09c5775b-39e6-47eb-bd46-090d2a07843a
 
 - #### `ls`
   
@@ -121,7 +124,7 @@ If the project does not contain any domain, a new `service` and `app` cannot be 
   **Flags:**
   - `-l`: lists domains line-by-line
   
-  domain ls command preview
+  https://github.com/user-attachments/assets/7014cbb4-5730-4278-affa-1a2dbc6d6ba5
 
 ### `port`
 This is the parent command for all port-related operations.
@@ -147,6 +150,13 @@ You can use this port when creating a new service, app, infrastructure or packag
 
   This command lists all ports under the `internal/domain/<domainname>/port`
 
+  **Flags:**
+  - `-l`: lists ports line-by-line
+
+  https://github.com/user-attachments/assets/6898c794-ab31-4ed8-9eee-1702a566f655
+
+
+
 ### `service`
 This is the parent command for all service-related (domain-service) operations.
 
@@ -166,7 +176,7 @@ This is the parent command for all service-related (domain-service) operations.
   hexago service new
   ```
 
-  service new command preview
+  https://github.com/user-attachments/assets/b3f94d5f-aa05-4b61-842c-37153b901328
 
 - #### `ls`
 
@@ -178,7 +188,7 @@ This is the parent command for all service-related (domain-service) operations.
   **Flags:**
   - `-l`: lists services line-by-line
   
-  service ls command preview
+  https://github.com/user-attachments/assets/39607acd-aed9-47cf-baed-3c7bd2ab5bce
 
 ### `app`
 This is the parent command for all application-related (application-service) operations.
@@ -201,7 +211,7 @@ Application services are the places where endpoints such as controllers or cli a
   hexago app new
   ```
 
-  app new command preview
+  https://github.com/user-attachments/assets/a390cb4b-91f5-45dd-a4df-a076765452c9
 
 - #### `ls`
 
@@ -213,7 +223,7 @@ Application services are the places where endpoints such as controllers or cli a
   **Flags:**
   - `-l`: lists applications line-by-line
   
-  app ls command preview
+  https://github.com/user-attachments/assets/8cd60430-4c83-4f42-a252-462974fa635e
 
 ### `infra`
 This is the parent command for all infrastructure-related operations.
@@ -235,7 +245,7 @@ Infrastructures host databases (repositories), cache adapters or APIs that we de
   hexago infra new
   ```
 
-  infra new command preview
+  https://github.com/user-attachments/assets/8c000cfa-1f6b-42dd-8459-adf25182d972
 
 - #### `ls`
 
@@ -247,7 +257,7 @@ Infrastructures host databases (repositories), cache adapters or APIs that we de
   **Flags:**
   - `-l`: lists infrastructures line-by-line
   
-  infra ls command preview
+  https://github.com/user-attachments/assets/47a1379d-3661-4e8c-88f3-13cea15bcf12
 
 ### `pkg`
 This is the parent command for all package-related operations.
@@ -272,7 +282,7 @@ Packages are the location where we host features such as utils. There are two ty
   hexago pkg new
   ```
 
-  pkg new command preview
+  https://github.com/user-attachments/assets/1d518553-49ce-4c18-868a-f7ff87829a36
 
 - #### `ls`
 
@@ -286,7 +296,7 @@ Packages are the location where we host features such as utils. There are two ty
   - `-a`: list both global and internal packages.
   - `-l`: lists packages line-by-line
   
-  pkg ls command preview
+  https://github.com/user-attachments/assets/6d055ce5-deff-4096-8f8c-00964238cc59
 
 ### `cmd`
 This is the parent command for all entry point-related (cmd) operations.
@@ -315,7 +325,7 @@ There is only one step creating an entry point.
   hexago cmd new
   ```
 
-  cmd new command preview
+  https://github.com/user-attachments/assets/63503d4a-7691-4855-afa4-672602904d96
 
 - #### `ls`
 
@@ -327,7 +337,7 @@ There is only one step creating an entry point.
   **Flags:**
   - `-l`: lists entry points line-by-line
   
-  cmd ls command preview
+  https://github.com/user-attachments/assets/2f543ce7-fdaf-4970-9324-59027dcca179
 
   ### `run`
 This command can be used for two different purposes. the `run` command create a log file under the `logs` directory defaultly.
@@ -337,11 +347,16 @@ This command can be used for two different purposes. the `run` command create a 
   ```sh
   hexago run <entry-point-name>
   ```
+
+  https://github.com/user-attachments/assets/3f80bcd9-b737-4f79-8635-ad5a220c7680
+
   **Flags:**
   - `-e`: run entry point with environment variable. You can use multiple environment variable
     ```sh
     hexago run <entry-point-name> -e <ENV_KEY1>=<ENV_VALUE1> -e <ENV_KEY2>=<ENV_VALUE2>
     ```
+
+  https://github.com/user-attachments/assets/ef73dfbe-79b3-482b-92d0-dbe0a29738f7
   
   You can customize this run command with given entry point in `.hexago/config.yaml` file.
 
