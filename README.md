@@ -78,6 +78,30 @@ Here it is nice blog posts about hexagonal architecture:
 
 ## Usage
 
+- [doctor](#doctor)
+- [init](#init)
+- [domain](#domain)
+  - [new](#new)
+  - [ls](#ls)
+- [port](#port)
+  - [ls](#ls-1)
+- [service](#service)
+  - [new](#new-1)
+  - [ls](#ls-2)
+- [app](#app)
+  - [new](#new-2)
+  - [ls](#ls-3)
+- [infra](#infra)
+  - [new](#new-3)
+  - [ls](#ls-4)
+- [pkg](#pkg)
+  - [new](#new-4)
+  - [ls](#ls-5)
+- [cmd](#cmd)
+  - [new](#new-5)
+  - [ls](#ls-6)
+- [run](#run)
+
 ### `doctor`
 
 The `doctor` command displays the status of dependencies that are required for hexago to run properly.
