@@ -123,7 +123,7 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 	infraFile, err := projectService.CreateInfrastructure(
 		cmd.Context(),
 		dto.CreateInfraParams{
-			StructName:      args[0],
+			StructName:      infraName,
 			PackageName:     pkgName,
 			PortParam:       portInfo.portName,
 			AssertInterface: portInfo.assertInterface,
