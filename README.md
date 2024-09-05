@@ -13,7 +13,7 @@ go install github.com/ksckaan1/hexago@latest
 
 > Make sure that the directory `$HOME/go/bin` is appended to the `$PATH` ortan variable
 
-## Get Started
+## Before We Start
 
 If you didn’t hear about hexagonal architecture before, firstly, you could research about it.
 
@@ -22,6 +22,16 @@ Here it is nice blog posts about hexagonal architecture:
 - https://medium.com/ssense-tech/hexagonal-architecture-there-are-always-two-sides-to-every-story-bc0780ed7d9c
 - https://dev.to/bagashiz/building-restful-api-with-hexagonal-architecture-in-go-1mij
 - https://medium.com/@janishar.ali/how-to-architecture-good-go-backend-rest-api-services-14cc4730c05b
+
+## What is Hexago?
+
+Hexago is a CLI tool for you to create a go project by applying hexagonal architecture.
+
+## Why Hexago?
+
+Hexago can be used to create hexagonal Go projects in an organised way. In this way, you can follow certain standards and have a more manageable application development phase. It imposes its own rules for certain situations and as a result of these impositions, your project gains regularity.
+
+You can also use Hexago only for creating hexagonal projects. It is your preference whether or not to bring it with hexago.
 
 ## Example Folder Structure
 
