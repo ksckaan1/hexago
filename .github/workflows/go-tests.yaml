@@ -26,4 +26,6 @@ jobs:
         run: go install github.com/josharian/impl@latest
 
       - name: Run tests
+        env:
+          SHELL: /bin/bash
         run: go test -v ./...
