@@ -72,7 +72,7 @@ func (p *Project) CreateApplication(ctx context.Context, params dto.CreateApplic
 
 	err = p.isApplicationExist(ctx, params.TargetDomain, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("application already exist: %s in %s", params.PackageName, params.TargetDomain)
+		return "", fmt.Errorf("is application exist: %w", dto.ErrAlreadyExist)
 	}
 
 	applicationDir := filepath.Join("internal", "domain", params.TargetDomain, "application", params.PackageName)
