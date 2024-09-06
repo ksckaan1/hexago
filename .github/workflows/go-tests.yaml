@@ -27,5 +27,5 @@ jobs:
 
       - name: Run tests
         env:
-          SHELL: /bin/bash
+          SHELL: bash
         run: go test -v ./...
