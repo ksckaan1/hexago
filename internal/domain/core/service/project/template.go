@@ -161,7 +161,7 @@ func (p *Project) generateImplementation(ctx context.Context, instanceName, inte
 
 	interfaceInfo, err := p.getInterfaceInfo(ctx, interfaceParam)
 	if err != nil {
-		return nil, fmt.Errorf("get interface path and name: %w", err)
+		return nil, fmt.Errorf("get interface info: %w", err)
 	}
 
 	if interfaceInfo == nil {
@@ -216,7 +216,7 @@ func (p *Project) getInterfaceInfo(ctx context.Context, interfaceParam string) (
 	isDomainPortParam := rgxDomainPortParam.MatchString(interfaceParam)
 
 	if !(isPortParam || isDomainPortParam || isNormalParam) {
-		return nil, fmt.Errorf("invalid port parameter: %s", interfaceParam)
+		return nil, dto.ErrInvalidPortName{PortName: interfaceParam}
 	}
 
 	if isNormalParam {

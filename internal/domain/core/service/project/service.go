@@ -72,7 +72,7 @@ func (p *Project) CreateService(ctx context.Context, params dto.CreateServicePar
 
 	err = p.isServiceExist(ctx, params.TargetDomain, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("service already exist: %s in %s", params.PackageName, params.TargetDomain)
+		return "", fmt.Errorf("is service exist: %w", dto.ErrAlreadyExist)
 	}
 
 	serviceDir := filepath.Join("internal", "domain", params.TargetDomain, "service", params.PackageName)

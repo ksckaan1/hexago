@@ -47,7 +47,12 @@ func (p *Project) isDomainExist(ctx context.Context, targetDomain string) error 
 func (p *Project) CreateDomain(ctx context.Context, params dto.CreateDomainParams) error {
 	err := p.isDomainExist(ctx, params.DomainName)
 	if err == nil {
-		return fmt.Errorf("domain already exist: %s", params.DomainName)
+		return fmt.Errorf("is domain exist: %w", dto.ErrAlreadyExist)
+	}
+
+	err = p.ValidatePkgName(params.DomainName)
+	if err != nil {
+		return fmt.Errorf("validate pkg name: %w", err)
 	}
 
 	domainPath := filepath.Join("internal", "domain", params.DomainName)
