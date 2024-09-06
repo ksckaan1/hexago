@@ -47,6 +47,11 @@ type CreatePackageParams struct {
 
 type DoctorResult struct {
 	OSResult   string
-	GoResult   string
-	ImplResult string
+	GoResult   Tool
+	ImplResult Tool
+}
+
+type Tool struct {
+	IsInstalled bool
+	Output      string
 }

@@ -7,24 +7,19 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 )
 
 func (p *Project) Doctor(ctx context.Context) (*dto.DoctorResult, error) {
-	goCommand, err := p.checkCommand(ctx, "go version")
+	goCommand, err := p.isToolInstalled(ctx, "go version")
 	if err != nil {
 		return nil, fmt.Errorf("check command: %w", err)
 	}
 
-	implCommand, err := p.checkCommand(ctx, "impl Murmur hash.Hash")
+	implCommand, err := p.isToolInstalled(ctx, "impl Murmur hash.Hash")
 	if err != nil {
 		return nil, fmt.Errorf("check command: %w", err)
-	}
-
-	if implCommand != "" {
-		implCommand = "installed"
 	}
 
 	return &dto.DoctorResult{
@@ -34,21 +29,27 @@ func (p *Project) Doctor(ctx context.Context) (*dto.DoctorResult, error) {
 	}, nil
 }
 
-func (p *Project) checkCommand(ctx context.Context, command string) (string, error) {
+func (p *Project) isToolInstalled(ctx context.Context, command string) (dto.Tool, error) {
 	term, err := p.getTerminalName()
 	if err != nil {
-		return "", fmt.Errorf("get terminal name: %w", err)
+		return dto.Tool{}, fmt.Errorf("get terminal name: %w", err)
 	}
 
 	cmd := exec.CommandContext(ctx, term, "-c", command)
 	cmd.Env = os.Environ()
-	stdOut := &bytes.Buffer{}
-	cmd.Stdout = stdOut
+	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	cmd.Stdout, cmd.Stderr = stdOut, stdErr
 
 	err = cmd.Run()
 	if err != nil {
-		return "", nil
+		return dto.Tool{
+			IsInstalled: false,
+			Output:      stdErr.String(),
+		}, nil
 	}
 
-	return strings.TrimSpace(stdOut.String()), nil
+	return dto.Tool{
+		IsInstalled: true,
+		Output:      stdOut.String(),
+	}, nil
 }

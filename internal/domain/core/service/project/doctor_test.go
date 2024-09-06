@@ -16,9 +16,7 @@ func TestDoctor(t *testing.T) {
 	result, err := projectService.Doctor(context.Background())
 	require.NoError(t, err)
 
-	t.Log(result)
-
 	require.NotEmpty(t, result.OSResult)
-	require.NotEmpty(t, result.GoResult)
-	require.NotEmpty(t, result.ImplResult)
+	require.True(t, result.GoResult.IsInstalled, result.GoResult.Output)
+	require.True(t, result.ImplResult.IsInstalled, result.ImplResult.Output)
 }

@@ -68,17 +68,17 @@ func (c *DoctorCommand) runner(cmd *cobra.Command, args []string) error {
 	c.tuilog.Info(result.OSResult, "os/arch")
 	fmt.Println("")
 
-	if result.GoResult != "" {
-		c.tuilog.Success(result.GoResult, "go")
+	if result.GoResult.IsInstalled {
+		c.tuilog.Success(result.GoResult.Output, "go")
 	} else {
-		c.tuilog.Error("not found", "go")
+		c.tuilog.Error(result.GoResult.Output, "go")
 	}
 	fmt.Println("")
 
-	if result.ImplResult != "" {
+	if result.ImplResult.IsInstalled {
 		c.tuilog.Success("installed", "impl")
 	} else {
-		c.tuilog.Error("not found", "impl")
+		c.tuilog.Error(result.ImplResult.Output, "impl")
 	}
 	fmt.Println("")
 
