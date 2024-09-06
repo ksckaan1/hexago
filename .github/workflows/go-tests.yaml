@@ -22,5 +22,8 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Install impl
+        run: go install github.com/josharian/impl@latest
+
       - name: Run tests
         run: go test -v ./...
