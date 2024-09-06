@@ -16,6 +16,8 @@ func TestDoctor(t *testing.T) {
 	result, err := projectService.Doctor(context.Background())
 	require.NoError(t, err)
 
+	t.Log(result)
+
 	require.NotEmpty(t, result.OSResult)
 	require.NotEmpty(t, result.GoResult)
 	require.NotEmpty(t, result.ImplResult)
