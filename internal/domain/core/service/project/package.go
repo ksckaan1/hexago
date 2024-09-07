@@ -66,7 +66,7 @@ func (p *Project) CreatePackage(ctx context.Context, params dto.CreatePackagePar
 
 	err = p.isPkgExist(ctx, params.PackageName, params.IsGlobal)
 	if err == nil {
-		return "", fmt.Errorf("package already exist: %s", params.StructName)
+		return "", fmt.Errorf("is pkg exist: %w", dto.ErrAlreadyExist)
 	}
 
 	packageDir := filepath.Join("internal", "pkg", params.PackageName)
