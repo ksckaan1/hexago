@@ -52,7 +52,7 @@ func (p *Project) CreateEntryPoint(ctx context.Context, params dto.CreateEntryPo
 
 	err = p.isEntryPointExist(ctx, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("entry point already exist: %s", params.PackageName)
+		return "", fmt.Errorf("is entry point exist: %w", dto.ErrAlreadyExist)
 	}
 
 	entryPointPath := filepath.Join("cmd", params.PackageName)
