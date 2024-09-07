@@ -203,9 +203,9 @@ func TestCreateInfrastructure(t *testing.T) {
 			}
 			require.NoError(t, tt.in.preRun(projectService))
 
-			serviceFile, err := projectService.CreateInfrastructure(tt.args.ctx(), tt.args.params)
+			infraFile, err := projectService.CreateInfrastructure(tt.args.ctx(), tt.args.params)
 			tt.want.err(t, err)
-			require.Equal(t, tt.want.infraFilePath, serviceFile)
+			require.Equal(t, tt.want.infraFilePath, infraFile)
 		})
 	}
 }
@@ -218,8 +218,8 @@ func TestGetAllInfrastructures(t *testing.T) {
 		ctx func() context.Context
 	}
 	type want struct {
-		err      require.ErrorAssertionFunc
-		services []string
+		err             require.ErrorAssertionFunc
+		infrastructures []string
 	}
 
 	tests := []struct {
@@ -258,8 +258,8 @@ func TestGetAllInfrastructures(t *testing.T) {
 				ctx: context.Background,
 			},
 			want: want{
-				err:      require.NoError,
-				services: []string{"example0", "example1", "example2"},
+				err:             require.NoError,
+				infrastructures: []string{"example0", "example1", "example2"},
 			},
 		},
 		{
@@ -277,8 +277,8 @@ func TestGetAllInfrastructures(t *testing.T) {
 				ctx: context.Background,
 			},
 			want: want{
-				err:      require.NoError,
-				services: []string{},
+				err:             require.NoError,
+				infrastructures: []string{},
 			},
 		},
 	}
@@ -290,9 +290,9 @@ func TestGetAllInfrastructures(t *testing.T) {
 			}
 			require.NoError(t, tt.in.preRun(projectService))
 
-			services, err := projectService.GetAllInfrastructes(tt.args.ctx())
+			infrastructures, err := projectService.GetAllInfrastructes(tt.args.ctx())
 			tt.want.err(t, err)
-			require.Equal(t, tt.want.services, services)
+			require.Equal(t, tt.want.infrastructures, infrastructures)
 		})
 	}
 }
