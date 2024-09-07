@@ -62,7 +62,7 @@ func (p *Project) CreateInfrastructure(ctx context.Context, params dto.CreateInf
 
 	err = p.isInfraExist(ctx, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("infrastructure already exist: %s", params.StructName)
+		return "", fmt.Errorf("is infra exist: %w", dto.ErrAlreadyExist)
 	}
 
 	infraDir := filepath.Join("internal", "infrastructure", params.PackageName)
