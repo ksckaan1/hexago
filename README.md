@@ -1,5 +1,32 @@
 ![Hexago](doc/hexago.png)
 
+## TOC
+- [TOC](#toc)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Before We Start](#before-we-start)
+- [What is Hexago?](#what-is-hexago)
+- [Why Hexago?](#why-hexago)
+- [Example Folder Structure](#example-folder-structure)
+- [Commands](#commands)
+  - [`doctor`](#doctor)
+  - [`init`](#init)
+  - [`domain`](#domain)
+  - [`port`](#port)
+  - [`service`](#service)
+  - [`app`](#app)
+  - [`infra`](#infra)
+  - [`pkg`](#pkg)
+  - [`cmd`](#cmd)
+  - [`run`](#run)
+- [Templates](#templates)
+  - [Custom Templates](#custom-templates)
+    - [Naming Custom Template](#naming-custom-template)
+    - [Content of Custom Template](#content-of-custom-template)
+    - [Selecting Custom Template to Use](#selecting-custom-template-to-use)
+
+
+
 ## Installation
 
 ```sh
@@ -85,7 +112,7 @@ You can also use Hexago only for creating hexagonal projects. It is your prefere
 └── scripts/
 ```
 
-## Usage
+## Commands
 
 - [doctor](#doctor)
 - [init](#init)
