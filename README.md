@@ -432,3 +432,94 @@ This command can be used for two different purposes. the `run` command create a 
   ```text
   go version go1.23.0 darwin/arm64
   ```
+
+## Templates
+
+When creating service, application, infrastructure and package with Hexago, templates are used to create go files.  Hexago has 2 built-in templates, `std` and `do`.
+
+`std` template uses the standard go instance initialiser.
+
+```go
+package mypkg
+
+type MyPkg struct{}
+
+func New() (*MyPkg, error) {
+  return &MyPkg{}, nil
+}
+```
+
+`do` is a package that provides a dependency injection container. 
+
+```go
+package mypkg
+
+import "github.com/samber/do"
+
+type MyPkg struct{}
+
+func New(i *do.Injector) (*MyPkg, error) {
+  return &MyPkg{}, nil
+}
+```
+
+Which template to use can be determined in the `.hexago/config.yaml` file.
+
+```yaml
+templates: # std | do | <custom>
+  service: std
+  application: do
+  infrastructure: std
+  package: do
+```
+
+### Custom Templates
+
+If you want to use another template other than these templates, you can create your own template.
+
+#### Naming Custom Template
+Custom templates are hosted under the `.hexago/templates/` directory. There is a convention that must be used when naming the template file.
+
+`.hexago/templates/<template-name>_<template-type>.tmpl`
+
+Examples:
+
+- `.hexago/templates/abc_service.tmpl`
+- `.hexago/templates/abc_application.tmpl`
+- `.hexago/templates/abc_infrastructure.tmpl`
+- `.hexago/templates/abc_package.tmpl`
+
+#### Content of Custom Template
+
+For example, the `std` template is as follows.
+
+```gotmpl
+package {{.PkgName}}
+
+import "github.com/samber/do"
+{{if and .AssertInterface (ne .ImportName "") (ne .InterfaceName "") (ne .ImportPath "")}}
+import {{.ImportName}} "{{.ImportPath}}"
+
+var _ {{.ImportName}}.{{.InterfaceName}} = (*{{.StructName}})(nil)
+{{end}}
+
+type {{.StructName}} struct{}
+
+func New(i *do.Injector) (*{{.StructName}}, error) {
+  return &{{.StructName}}{}, nil
+}
+
+{{ if ne .Implementation "" }}{{ .Implementation }}{{end}}
+```
+
+#### Selecting Custom Template to Use
+
+To use the created custom template, you must specify the template name in `config.yaml`.
+
+```yaml
+templates: # std | do | <custom>
+  service: abc
+  application: std
+  infrastructure: std
+  package: std
+```
