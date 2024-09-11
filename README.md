@@ -1,11 +1,12 @@
 ![Hexago](doc/hexago.png)
 
+Hexago is a CLI tool for you to create a Go project by applying hexagonal architecture.
+
 ## TOC
 - [TOC](#toc)
 - [Installation](#installation)
 - [Dependencies](#dependencies)
 - [Before We Start](#before-we-start)
-- [What is Hexago?](#what-is-hexago)
 - [Why Hexago?](#why-hexago)
 - [Example Folder Structure](#example-folder-structure)
 - [Commands](#commands)
@@ -48,10 +49,6 @@ Here it is nice blog posts about hexagonal architecture:
 - https://medium.com/ssense-tech/hexagonal-architecture-there-are-always-two-sides-to-every-story-bc0780ed7d9c
 - https://dev.to/bagashiz/building-restful-api-with-hexagonal-architecture-in-go-1mij
 - https://medium.com/@janishar.ali/how-to-architecture-good-go-backend-rest-api-services-14cc4730c05b
-
-## What is Hexago?
-
-Hexago is a CLI tool for you to create a go project by applying hexagonal architecture.
 
 ## Why Hexago?
 
