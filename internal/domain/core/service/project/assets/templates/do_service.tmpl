@@ -9,7 +9,7 @@ var _ {{.ImportName}}.{{.InterfaceName}} = (*{{.StructName}})(nil)
 
 type {{.StructName}} struct{}
 
-func New(i *do.Injector) (*{{.StructName}}, error) {
+func New(i *do.Injector) ({{if ne .InterfaceName ""}}{{.ImportName}}.{{.InterfaceName}}{{else}}*{{.StructName}}{{end}}, error) {
   return &{{.StructName}}{}, nil
 }
 
