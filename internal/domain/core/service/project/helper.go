@@ -77,6 +77,20 @@ func (*Project) createHexagoConfigs(projectPath string) error {
 	return nil
 }
 
+func (*Project) addGitignore(projectPath string) error {
+	configContent, err := assets.ReadFile("assets/.gitignore")
+	if err != nil {
+		return fmt.Errorf("assets: read file: %w", err)
+	}
+
+	err = os.WriteFile(filepath.Join(projectPath, ".gitignore"), configContent, 0o644)
+	if err != nil {
+		return fmt.Errorf("os: write file: %w", err)
+	}
+
+	return nil
+}
+
 func (*Project) createProjectSubDirs() error {
 	dirs := []string{
 		"cmd",

@@ -32,6 +32,11 @@ func (p *Project) InitNewProject(ctx context.Context, params dto.InitNewProjectP
 		return fmt.Errorf("create hexago configs: %w", err)
 	}
 
+	err = p.addGitignore(projectPath)
+	if err != nil {
+		return fmt.Errorf("add gitignore: %w", err)
+	}
+
 	if params.CreateModule {
 		err = p.initGoModule(ctx, params.ModuleName)
 		if err != nil {
