@@ -15,6 +15,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/treecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	projectservice "github.com/ksckaan1/hexago/internal/domain/core/service/project"
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
@@ -51,6 +52,7 @@ func main() {
 	do.Provide(i, packagecmd.NewPackageCreateCommand)
 	do.Provide(i, runnercmd.NewRunnerCommand)
 	do.Provide(i, doctorcmd.NewDoctorCommand)
+	do.Provide(i, treecmd.NewTreeCommand)
 
 	do.Provide(i, projectservice.New)
 	do.Provide(i, config.New)
