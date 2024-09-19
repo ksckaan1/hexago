@@ -118,7 +118,7 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 			Child(c.colorizeElements(entryPoints)),
 		tree.Root(c.title("Domains", len(domains))).
 			Child(domainTree...),
-		tree.Root("Infrastructures").
+		tree.Root(c.title("Infrastructures", len(infras))).
 			Child(c.colorizeElements(infras)),
 		tree.Root(c.title("Packages", len(globalPackages)+len(internalPackages))).
 			Child(
