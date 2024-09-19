@@ -20,6 +20,7 @@ Hexago is a CLI tool for you to create a Go project by applying hexagonal archit
   - [`pkg`](#pkg)
   - [`cmd`](#cmd)
   - [`run`](#run)
+  - [`tree`](#tree)
 - [Templates](#templates)
   - [Custom Templates](#custom-templates)
     - [Naming Custom Template](#naming-custom-template)
@@ -454,6 +455,15 @@ This command can be used for two different purposes. the `run` command create a 
   ```text
   go version go1.23.0 darwin/arm64
   ```
+
+### `tree`
+This command prints hexagonal structure of project.
+
+```sh
+hexago tree
+```
+
+![](./doc/17-tree.gif)
 
 ## Templates
 
