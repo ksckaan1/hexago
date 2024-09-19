@@ -105,7 +105,7 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 				huh.NewInput().
 					Title("What’s module name?").
 					Placeholder(defaultModuleName).
-					Description("If you leave it blank, it will have the same name as the project directory").
+					Description("If you leave it blank, it will have the same name\nas the project directory").
 					Value(&moduleName),
 			).WithShowHelp(true),
 		).Run()
