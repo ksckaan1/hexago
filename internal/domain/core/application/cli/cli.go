@@ -13,6 +13,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/treecmd"
 	"github.com/samber/do"
 	"github.com/spf13/cobra"
 )
@@ -46,6 +47,7 @@ type CLI struct {
 	packageCreateCmd    *packagecmd.PackageCreateCommand
 	runnerCmd           *runnercmd.RunnerCommand
 	doctorCmd           *doctorcmd.DoctorCommand
+	treeCmd             *treecmd.TreeCommand
 }
 
 func New(i *do.Injector) (*CLI, error) {
@@ -74,6 +76,7 @@ func New(i *do.Injector) (*CLI, error) {
 		packageCreateCmd:    do.MustInvoke[*packagecmd.PackageCreateCommand](i),
 		runnerCmd:           do.MustInvoke[*runnercmd.RunnerCommand](i),
 		doctorCmd:           do.MustInvoke[*doctorcmd.DoctorCommand](i),
+		treeCmd:             do.MustInvoke[*treecmd.TreeCommand](i),
 	}, nil
 }
 
@@ -101,6 +104,7 @@ func (c *CLI) Run(ctx context.Context) error {
 	c.packageCmd.AddCommand(c.packageCreateCmd)
 	c.rootCmd.AddCommand(c.runnerCmd)
 	c.rootCmd.AddCommand(c.doctorCmd)
+	c.rootCmd.AddCommand(c.treeCmd)
 
 	err := c.rootCmd.Execute(ctx)
 	if err != nil {

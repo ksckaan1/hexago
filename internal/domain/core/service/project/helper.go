@@ -139,7 +139,7 @@ func (*Project) ValidatePkgName(pkgName string) error {
 var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9\-]{0,}$`)
 
 func (*Project) ValidateEntryPointName(entryPointName string) error {
-	if !pkgNameRgx.MatchString(entryPointName) {
+	if !pkgCmdRgx.MatchString(entryPointName) {
 		return dto.ErrInvalidCmdName
 	}
 	return nil
