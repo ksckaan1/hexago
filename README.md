@@ -39,6 +39,7 @@ go install github.com/ksckaan1/hexago@latest
 - [go](https://go.dev)
 - [impl](https://github.com/josharian/impl)
 
+> [!WARNING] 
 > Make sure that the directory `$HOME/go/bin` is appended to the `$PATH` ortan variable
 
 ## Before We Start
