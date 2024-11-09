@@ -56,14 +56,12 @@ func (p *Project) generateGoInitFile(ctx context.Context, dir, structName, pkgNa
 
 	var (
 		implementation string
-		importName     string
 		importPath     string
 		interfaceName  string
 	)
 
 	if implementationDetails != nil {
 		implementation = implementationDetails.Implementation
-		importName = implementationDetails.ImportName
 		importPath = implementationDetails.ImportPath
 		interfaceName = implementationDetails.InterfaceName
 	}
@@ -73,7 +71,6 @@ func (p *Project) generateGoInitFile(ctx context.Context, dir, structName, pkgNa
 		"StructName":      structName,
 		"PkgName":         pkgName,
 		"Implementation":  implementation,
-		"ImportName":      importName,
 		"ImportPath":      importPath,
 		"InterfaceName":   interfaceName,
 		"AssertInterface": assertInterface,
@@ -155,7 +152,6 @@ type PortValue struct {
 type ImplementationDetail struct {
 	InterfaceName  string
 	ImportPath     string
-	ImportName     string
 	Implementation string
 }
 
@@ -187,76 +183,40 @@ func (p *Project) generateImplementation(ctx context.Context, instanceName, inte
 		return nil, fmt.Errorf("impl: %s", stdErr.String())
 	}
 
-	importName := interfaceInfo.InterfaceDomain
-
-	if interfaceInfo.IsInDomain {
-		importName = interfaceInfo.InterfaceDomain + "port"
-	}
-
 	return &ImplementationDetail{
 		InterfaceName:  interfaceInfo.InterfaceName,
-		ImportName:     importName,
 		ImportPath:     interfaceInfo.ImportPath,
 		Implementation: stdOut.String(),
 	}, nil
 }
 
 var (
-	rgxPortParam       = regexp.MustCompile(`^([A-Z][\w]{0,})$`)
-	rgxDomainPortParam = regexp.MustCompile(`^([a-z][a-z0-9]{0,}):([A-Z][\w]{0,})$`)
-	rgxNormalParam     = regexp.MustCompile(`^([^\s]+)\.([A-Z][\w]*)$`)
+	rgxPortParam   = regexp.MustCompile(`^([A-Z]\w*)$`)
+	rgxNormalParam = regexp.MustCompile(`^(\S+)\.([A-Z]\w*)$`)
 )
 
 type InterfaceInfo struct {
-	InterfaceName   string
-	InterfaceDomain string
-	ImplementParam  string
-	IsInDomain      bool
-	ImportPath      string
+	InterfaceName  string
+	ImplementParam string
+	IsInDomain     bool
+	ImportPath     string
 }
 
 func (p *Project) getInterfaceInfo(ctx context.Context, interfaceParam string) (*InterfaceInfo, error) {
 	isPortParam := rgxPortParam.MatchString(interfaceParam)
 	isNormalParam := rgxNormalParam.MatchString(interfaceParam)
-	isDomainPortParam := rgxDomainPortParam.MatchString(interfaceParam)
 
-	if !(isPortParam || isDomainPortParam || isNormalParam) {
+	if !(isPortParam || isNormalParam) {
 		return nil, dto.ErrInvalidPortName{PortName: interfaceParam}
 	}
 
 	if isNormalParam {
 		sm := rgxNormalParam.FindStringSubmatch(interfaceParam)
 		return &InterfaceInfo{
-			InterfaceName:   sm[2],
-			InterfaceDomain: filepath.Base(sm[1]),
-			ImplementParam:  interfaceParam,
-			ImportPath:      sm[1],
+			InterfaceName:  sm[2],
+			ImplementParam: interfaceParam,
+			ImportPath:     sm[1],
 		}, nil
-	}
-
-	var (
-		domainName    string
-		interfaceName string
-	)
-
-	if isPortParam {
-		domains, err := p.GetAllDomains(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("get all domains: %w", err)
-		}
-
-		if len(domains) != 1 {
-			return nil, fmt.Errorf("domain name required for port")
-		}
-
-		domainName = domains[0]
-		interfaceName = interfaceParam
-	}
-
-	if isDomainPortParam {
-		sm := rgxDomainPortParam.FindStringSubmatch(interfaceParam)
-		domainName = sm[1]
-		interfaceName = sm[2]
 	}
 
 	moduleName, err := p.GetModuleName()
@@ -264,14 +224,13 @@ func (p *Project) getInterfaceInfo(ctx context.Context, interfaceParam string) (
 		return nil, fmt.Errorf("get module name: %w", err)
 	}
 
-	interfacePath := filepath.Join(moduleName, "internal", "domain", domainName, "port")
+	interfacePath := filepath.Join(moduleName, "internal", "port")
 
 	return &InterfaceInfo{
-		InterfaceName:   interfaceName,
-		InterfaceDomain: domainName,
-		ImplementParam:  fmt.Sprintf("%s.%s", interfacePath, interfaceName),
-		ImportPath:      interfacePath,
-		IsInDomain:      true,
+		InterfaceName:  interfaceParam,
+		ImplementParam: fmt.Sprintf("%s.%s", interfacePath, interfaceParam),
+		ImportPath:     interfacePath,
+		IsInDomain:     true,
 	}, nil
 }
 

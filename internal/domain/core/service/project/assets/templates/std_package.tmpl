@@ -1,9 +1,9 @@
 package {{.PkgName}}
 
-{{if and .AssertInterface (ne .ImportName "") (ne .InterfaceName "") (ne .ImportPath "")}}
-import {{.ImportName}} "{{.ImportPath}}"
+{{if and .AssertInterface (ne .InterfaceName "") (ne .ImportPath "")}}
+import "{{.ImportPath}}"
 
-var _ {{.ImportName}}.{{.InterfaceName}} = (*{{.StructName}})(nil)
+var _ port.{{.InterfaceName}} = (*{{.StructName}})(nil)
 {{end}}
 
 type {{.StructName}} struct{}

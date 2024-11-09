@@ -68,14 +68,6 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
-	if err != nil {
-		fmt.Println("")
-		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
-	}
-
 	var packageName string
 
 	if len(args) > 0 {
@@ -114,6 +106,12 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		for j := range ports {
 			allPorts = append(allPorts, domains[i]+":"+ports[j])
 		}
+	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
+		return fmt.Errorf("get all ports: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, packageName)
@@ -250,6 +248,7 @@ func (c *PackageCreateCommand) selectPort(allPorts []string, instanceName string
 							"var _ %sport.%s = (*%s)(nil)",
 							strings.Split(portName, ":")[0],
 							strings.Split(portName, ":")[1],
+							"var _ port.%s = (*%s)(nil)",
 							instanceName,
 						),
 					).

@@ -83,18 +83,11 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("project service: get all applications: %w", err)
 		}
 
-		ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
-		if err != nil {
-			return fmt.Errorf("project service: get all ports: %w", err)
-		}
-
 		domainTree = append(domainTree, tree.Root(domains[i]).Child(
 			tree.Root(c.title("Services", len(services))).
 				Child(c.colorizeElements(services)),
 			tree.Root(c.title("Applications", len(apps))).
 				Child(c.colorizeElements(apps)),
-			tree.Root(c.title("Ports", len(ports))).
-				Child(c.colorizeElements(ports)),
 		))
 	}
 
@@ -113,6 +106,11 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("project service: get all infrastructures: %w", err)
 	}
 
+	ports, err := projectService.GetAllPorts(cmd.Context())
+	if err != nil {
+		return fmt.Errorf("project service: get all ports: %w", err)
+	}
+
 	treePresentation := tree.Root(fmt.Sprintf("Project (%s)", moduleName)).Child(
 		tree.Root(c.title("Entry Points", len(entryPoints))).
 			Child(c.colorizeElements(entryPoints)),
@@ -127,6 +125,8 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 				tree.Root(c.title("Internal", len(internalPackages))).
 					Child(c.colorizeElements(internalPackages)),
 			),
+		tree.Root(c.title("Ports", len(ports))).
+			Child(c.colorizeElements(ports)),
 	).String()
 
 	fmt.Println(treePresentation)

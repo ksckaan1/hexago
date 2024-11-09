@@ -6,13 +6,8 @@ import (
 	"path/filepath"
 )
 
-func (p *Project) GetAllPorts(ctx context.Context, targetDomain string) ([]string, error) {
-	err := p.isDomainExist(ctx, targetDomain)
-	if err != nil {
-		return nil, fmt.Errorf("is domain exist: %w", err)
-	}
-
-	portsPath := filepath.Join("internal", "domain", targetDomain, "port")
+func (p *Project) GetAllPorts(_ context.Context) ([]string, error) {
+	portsPath := filepath.Join("internal", "port")
 
 	portFilePaths, err := filepath.Glob(filepath.Join(portsPath, "*.go"))
 	if err != nil {

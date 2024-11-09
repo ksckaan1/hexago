@@ -133,19 +133,12 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	allPorts := make([]string, 0)
-
-	for i := range domains {
-		ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
-		if err != nil {
-			fmt.Println("")
-			c.tuilog.Error(err.Error())
-			fmt.Println("")
-			return fmt.Errorf("get all ports: %w", err)
-		}
-		for j := range ports {
-			allPorts = append(allPorts, domains[i]+":"+ports[j])
-		}
+	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
+		return fmt.Errorf("get all ports: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, appName)
@@ -257,9 +250,8 @@ func (c *AppCreateCommand) selectPort(allPorts []string, instanceName string) (*
 					Title("Do you want to assert port?").
 					Description(
 						fmt.Sprintf(
-							"var _ %sport.%s = (*%s)(nil)",
-							strings.Split(portName, ":")[0],
-							strings.Split(portName, ":")[1],
+							"var _ port.%s = (*%s)(nil)",
+							portName,
 							instanceName,
 						),
 					).

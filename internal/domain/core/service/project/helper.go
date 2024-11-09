@@ -97,10 +97,10 @@ func (*Project) createProjectSubDirs() error {
 		filepath.Join("internal", "domain", "core", "application"),
 		filepath.Join("internal", "domain", "core", "dto"),
 		filepath.Join("internal", "domain", "core", "model"),
-		filepath.Join("internal", "domain", "core", "port"),
 		filepath.Join("internal", "domain", "core", "service"),
 		filepath.Join("internal", "infrastructure"),
 		filepath.Join("internal", "pkg"),
+		filepath.Join("internal", "port"),
 		"pkg",
 		"config",
 		"schemas",
@@ -118,7 +118,7 @@ func (*Project) createProjectSubDirs() error {
 	return nil
 }
 
-var instanceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]{0,}$`)
+var instanceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
 
 func (*Project) ValidateInstanceName(instanceName string) error {
 	if !instanceNameRgx.MatchString(instanceName) {
@@ -127,7 +127,7 @@ func (*Project) ValidateInstanceName(instanceName string) error {
 	return nil
 }
 
-var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]{0,}$`)
+var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 
 func (*Project) ValidatePkgName(pkgName string) error {
 	if !pkgNameRgx.MatchString(pkgName) {
@@ -136,7 +136,7 @@ func (*Project) ValidatePkgName(pkgName string) error {
 	return nil
 }
 
-var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9\-]{0,}$`)
+var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9\-]*$`)
 
 func (*Project) ValidateEntryPointName(entryPointName string) error {
 	if !pkgCmdRgx.MatchString(entryPointName) {

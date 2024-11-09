@@ -113,6 +113,12 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		for j := range ports {
 			allPorts = append(allPorts, domains[i]+":"+ports[j])
 		}
+	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	if err != nil {
+		fmt.Println("")
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
+		return fmt.Errorf("get all ports: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, infraName)
@@ -224,6 +230,8 @@ func (c *InfraCreateCommand) selectPort(allPorts []string, instanceName string) 
 							"var _ %sport.%s = (*%s)(nil)",
 							strings.Split(portName, ":")[0],
 							strings.Split(portName, ":")[1],
+							"var _ port.%s = (*%s)(nil)",
+							portName,
 							instanceName,
 						),
 					).

@@ -22,7 +22,7 @@ type ProjectService interface {
 
 	// Port
 
-	GetAllPorts(ctx context.Context, targetDomain string) ([]string, error)
+	GetAllPorts(ctx context.Context) ([]string, error)
 
 	// Application
 

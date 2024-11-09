@@ -19,8 +19,7 @@ type PortLSCommand struct {
 	tuilog   *tuilog.TUILog
 
 	// flags
-	flagLine   *bool
-	flagDomain *string
+	flagLine *bool
 }
 
 func NewPortLSCommand(i *do.Injector) (*PortLSCommand, error) {
@@ -34,8 +33,7 @@ func NewPortLSCommand(i *do.Injector) (*PortLSCommand, error) {
 		injector: i,
 		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
 		// flags
-		flagLine:   new(bool),
-		flagDomain: new(string),
+		flagLine: new(bool),
 	}, nil
 }
 
@@ -62,51 +60,8 @@ func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("invoke project service: %w", err)
 	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
+	allPorts, err := projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("project service: get all domains: %w", err)
-	}
-
-	if len(domains) == 0 {
-		fmt.Println("")
-		c.tuilog.Error("No domains found.\nA domain needs to be created first")
-		fmt.Println("")
-		return fmt.Errorf("No domains found.\nA domain needs to be created first")
-	}
-
-	if *c.flagDomain == "" {
-		if len(domains) == 1 {
-			*c.flagDomain = domains[0]
-		} else {
-
-			selectList := []huh.Option[string]{
-				huh.NewOption("* (All Domains)", "*"),
-			}
-
-			selectList = append(selectList, lo.Map(domains, func(d string, _ int) huh.Option[string] {
-				return huh.NewOption(d, d)
-			})...)
-
-			err2 := huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Select a domain.").
-						Options(
-							selectList...,
-						).
-						Value(c.flagDomain),
-				).WithShowHelp(true),
-			).Run()
-			if err2 != nil {
-				fmt.Println("")
-				c.tuilog.Error("Select a domain: ", err2.Error())
-				fmt.Println("")
-				return fmt.Errorf("select a domain: %w", err2)
-			}
-		}
-	} else if !slices.Contains(domains, *c.flagDomain) {
-		fmt.Println("")
-		c.tuilog.Error("Domain not found: ", *c.flagDomain)
 		fmt.Println("")
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
@@ -133,6 +88,9 @@ func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		}
 
 		allPorts = append(allPorts, ports...)
+		c.tuilog.Error(err.Error())
+		fmt.Println("")
+		return fmt.Errorf("project service: get all ports: %w", err)
 	}
 
 	seperator := lo.Ternary(*c.flagLine, "\n", " ")

@@ -115,7 +115,7 @@ func TestGetAllPorts(t *testing.T) {
 			}
 			require.NoError(t, tt.in.preRun(projectService))
 
-			ports, err := projectService.GetAllPorts(tt.args.ctx(), tt.args.targetDomain)
+			ports, err := projectService.GetAllPorts(tt.args.ctx())
 			tt.want.err(t, err)
 			require.Equal(t, tt.want.ports, ports)
 		})
