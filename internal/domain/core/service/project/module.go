@@ -54,7 +54,12 @@ func (p *Project) GetModuleName(modulePath ...string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("module file not found: %s", mp)
 	}
-	defer f.Close()
+	defer func() {
+		err2 := f.Close()
+		if err2 != nil {
+			fmt.Println(err2)
+		}
+	}()
 
 	buf := &bytes.Buffer{}
 

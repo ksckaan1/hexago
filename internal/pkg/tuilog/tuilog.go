@@ -6,7 +6,7 @@ import (
 
 type TUILog struct{}
 
-func New(i *do.Injector) (*TUILog, error) {
+func New(_ *do.Injector) (*TUILog, error) {
 	return &TUILog{}, nil
 }
 

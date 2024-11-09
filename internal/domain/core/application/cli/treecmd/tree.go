@@ -108,7 +108,7 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("project service: get all internal packages: %w", err)
 	}
 
-	infras, err := projectService.GetAllInfrastructes(cmd.Context())
+	infras, err := projectService.GetAllInfrastructures(cmd.Context())
 	if err != nil {
 		return fmt.Errorf("project service: get all infrastructures: %w", err)
 	}

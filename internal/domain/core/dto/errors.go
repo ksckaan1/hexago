@@ -9,7 +9,6 @@ var (
 	ErrRunnerNotImplemented = errors.New("runner not implemented")
 	ErrDirMustBeFolder      = errors.New("dir must be folder")
 	ErrDomainNotFound       = errors.New("domain not found")
-	ErrServiceNotFound      = errors.New("service not found")
 	ErrInvalidInstanceName  = errors.New("invalid instance name")
 	ErrInvalidPkgName       = errors.New("invalid pkg name")
 	ErrInvalidCmdName       = errors.New("invalid cmd name")

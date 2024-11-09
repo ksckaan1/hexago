@@ -50,7 +50,7 @@ func (c *DoctorCommand) init() {
 	c.cmd.RunE = c.runner
 }
 
-func (c *DoctorCommand) runner(cmd *cobra.Command, args []string) error {
+func (c *DoctorCommand) runner(cmd *cobra.Command, _ []string) error {
 	projectService, err := do.Invoke[port.ProjectService](c.injector)
 	if err != nil {
 		return fmt.Errorf("invoke project service: %w", err)

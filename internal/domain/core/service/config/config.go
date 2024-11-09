@@ -17,7 +17,7 @@ type Config struct {
 	store model.Config
 }
 
-func New(i *do.Injector) (port.ConfigService, error) {
+func New(_ *do.Injector) (port.ConfigService, error) {
 	return &Config{}, nil
 }
 
@@ -26,7 +26,12 @@ func (c *Config) Load(cfgPath string) error {
 	if err != nil {
 		return fmt.Errorf("config file not found: %s", cfgPath)
 	}
-	defer cfgFile.Close()
+	defer func() {
+		err = cfgFile.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	err = yaml.NewDecoder(cfgFile).Decode(&c.store)
 	if err != nil {

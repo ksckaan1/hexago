@@ -124,7 +124,12 @@ func (p *Project) parseInterfaces(interfaceFile string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("os: open: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		err2 := f.Close()
+		if err2 != nil {
+			fmt.Println(err2)
+		}
+	}()
 
 	buf := &bytes.Buffer{}
 

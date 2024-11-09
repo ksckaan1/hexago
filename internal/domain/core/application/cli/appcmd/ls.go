@@ -121,7 +121,7 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		apps, err2 := projectService.GetAllApplications(cmd.Context(), domains[i])
 		if err2 != nil {
 			fmt.Println("")
-			c.tuilog.Error(err.Error())
+			c.tuilog.Error(err2.Error())
 			fmt.Println("")
 			return fmt.Errorf("project service: get all apps: %w", err2)
 		}

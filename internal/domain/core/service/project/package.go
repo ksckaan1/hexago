@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *Project) GetAllPackages(ctx context.Context, showGlobal bool) ([]string, error) {
+func (p *Project) GetAllPackages(_ context.Context, showGlobal bool) ([]string, error) {
 	pkgLocation := filepath.Join("internal", "pkg")
 
 	if showGlobal {

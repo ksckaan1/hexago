@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *Project) GetAllEntryPoints(ctx context.Context) ([]string, error) {
+func (p *Project) GetAllEntryPoints(_ context.Context) ([]string, error) {
 	cmdLocation := filepath.Join("cmd")
 
 	cmdCandidatePaths, err := filepath.Glob(filepath.Join(cmdLocation, "*"))

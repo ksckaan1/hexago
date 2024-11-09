@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *Project) GetAllInfrastructes(ctx context.Context) ([]string, error) {
+func (p *Project) GetAllInfrastructures(_ context.Context) ([]string, error) {
 	infraPath := filepath.Join("internal", "infrastructure")
 
 	infraCandidatePaths, err := filepath.Glob(filepath.Join(infraPath, "*"))
@@ -33,7 +33,7 @@ func (p *Project) GetAllInfrastructes(ctx context.Context) ([]string, error) {
 }
 
 func (p *Project) isInfraExist(ctx context.Context, targetInfra string) error {
-	infras, err := p.GetAllInfrastructes(ctx)
+	infras, err := p.GetAllInfrastructures(ctx)
 	if err != nil {
 		return fmt.Errorf("get all infrastructures: %w", err)
 	}

@@ -55,7 +55,7 @@ func (c *InfraLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("invoke project service: %w", err)
 	}
 
-	infras, err := projectService.GetAllInfrastructes(cmd.Context())
+	infras, err := projectService.GetAllInfrastructures(cmd.Context())
 	if err != nil {
 		fmt.Println("")
 		c.tuilog.Error(err.Error())

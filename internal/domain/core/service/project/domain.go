@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *Project) GetAllDomains(ctx context.Context) ([]string, error) {
+func (p *Project) GetAllDomains(_ context.Context) ([]string, error) {
 	domainLocation := filepath.Join("internal", "domain")
 
 	domainCandidatePaths, err := filepath.Glob(filepath.Join(domainLocation, "*"))

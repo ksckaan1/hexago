@@ -135,7 +135,10 @@ func (p *Project) runCmd(ctx context.Context, commandName string, runner *model.
 	}
 	defer func() {
 		for i := range closers {
-			closers[i].Close()
+			err2 := closers[i].Close()
+			if err2 != nil {
+				fmt.Println(err2)
+			}
 		}
 	}()
 	err = cmd.Run()

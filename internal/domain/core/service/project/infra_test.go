@@ -290,7 +290,7 @@ func TestGetAllInfrastructures(t *testing.T) {
 			}
 			require.NoError(t, tt.in.preRun(projectService))
 
-			infrastructures, err := projectService.GetAllInfrastructes(tt.args.ctx())
+			infrastructures, err := projectService.GetAllInfrastructures(tt.args.ctx())
 			tt.want.err(t, err)
 			require.Equal(t, tt.want.infrastructures, infrastructures)
 		})
