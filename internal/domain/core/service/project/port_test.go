@@ -46,7 +46,7 @@ func TestGetAllPorts(t *testing.T) {
 					}
 
 					for i := range 3 {
-						err = os.WriteFile(filepath.Join(dir, "internal", "domain", "core", "port", fmt.Sprintf("example%d.go", i)), []byte(fmt.Sprintf("package port\ntype Example%d interface {}\n", i)), 0o644)
+						err = os.WriteFile(filepath.Join(dir, "internal", "port", fmt.Sprintf("example%d.go", i)), []byte(fmt.Sprintf("package port\ntype Example%d interface {}\n", i)), 0o644)
 						if err != nil {
 							return err
 						}
@@ -82,28 +82,6 @@ func TestGetAllPorts(t *testing.T) {
 			want: want{
 				err:   require.NoError,
 				ports: []string{},
-			},
-		},
-		{
-			name: "domain not found",
-			in: in{
-				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
-						ProjectDirectory: t.TempDir(),
-						ModuleName:       "my-project",
-						CreateModule:     true,
-					})
-				},
-			},
-			args: args{
-				ctx:          context.Background,
-				targetDomain: "notexisting",
-			},
-			want: want{
-				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(t, err, dto.ErrDomainNotFound)
-				},
-				ports: nil,
 			},
 		},
 	}
