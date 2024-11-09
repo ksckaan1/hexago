@@ -8,7 +8,6 @@ Hexago is a CLI tool for you to create a Go project by applying hexagonal archit
 - [Dependencies](#dependencies)
 - [Before We Start](#before-we-start)
 - [Why Hexago?](#why-hexago)
-- [Example Folder Structure](#example-folder-structure)
 - [Commands](#commands)
   - [`doctor`](#doctor)
   - [`init`](#init)
@@ -58,59 +57,6 @@ Hexago can be used to create hexagonal Go projects in an organised way. In this 
 
 You can also use Hexago only for creating hexagonal projects. It is your preference whether or not to bring it with hexago.
 
-## Example Folder Structure
-
-```
-.
-├── .hexago/
-│   ├── config.yaml
-│   └── templates/
-├── cmd/
-│   └── api/
-│       └── main.go
-├── config/
-├── doc/
-├── go.mod
-├── internal/
-│   ├── domain/
-│   │   └── core/
-│   │       ├── application/
-│   │       │   ├── restapi/
-│   │       │   │   └── restapi.go
-│   │       │   └── rpcapi/
-│   │       │       └── rpcapi.go
-│   │       ├── dto/
-│   │       │   └── order.go
-│   │       ├── model/
-│   │       │   └── order.go
-│   │       ├── port/
-│   │       │   └── order.go
-│   │       └── service/
-│   │           ├── cancelorder/
-│   │           │   └── cancelorder.go
-│   │           ├── createorder/
-│   │           │   └── createorder.go
-│   │           ├── getorder/
-│   │           │   └── getorder.go
-│   │           ├── listorders/
-│   │           │   └── listorders.go
-│   │           └── updateorder/
-│   │               └── updateorder.go
-│   ├── infrastructure/
-│   │   ├── cache/
-│   │   │   └── cache.go
-│   │   └── orderrepository/
-│   │       └── orderrepository.go
-│   └── pkg/
-│       ├── authtoken/
-│       │   └── authtoken.go
-│       └── uniqueid/
-│           └── uniqueid.go
-├── pkg/
-├── schemas/
-└── scripts/
-```
-
 ## Commands
 
 - [doctor](#doctor)
@@ -136,6 +82,7 @@ You can also use Hexago only for creating hexagonal projects. It is your prefere
   - [new](#new-5)
   - [ls](#ls-6)
 - [run](#run)
+- [tree](#tree)
 
 ### `doctor`
 
@@ -143,7 +90,7 @@ The `doctor` command displays the status of dependencies that are required for h
 
 **Example:**
 
-![](./doc/00-doctor.gif)
+![](./doc/img/doctor.gif)
 
 ### `init`
 The `init` command initialize a Hexago project. This command creates a domain named `core` by default. Promts go module name. If leaves blank, uses project folder name as lowercase defaultly.
@@ -153,7 +100,7 @@ hexago init <project-path>
 ```
 **Example:**
 
-![](./doc/01-init.gif)
+![](./doc/img/init.gif)
 
 
 ### `domain`
@@ -169,7 +116,7 @@ If the project does not contain any domain, a new `service` and `app` cannot be 
   hexago domain new
   ```
 
-  ![](./doc/02-domain-new.gif)
+  ![](./doc/img/domain-new.gif)
 
 - #### `ls`
   
@@ -181,36 +128,56 @@ If the project does not contain any domain, a new `service` and `app` cannot be 
   **Flags:**
   - `-l`: lists domains line-by-line
   
-  ![](./doc/03-domain-ls.gif)
+  ![](./doc/img/domain-ls.gif)
 
 ### `port`
 This is the parent command for all port-related operations.
 
-Ports created in domains can be implemented when creating service, app, infrastructure and package. If there is no port in the project, it is not asked which port to implement in the creation screen.
+Ports can be implemented when creating service, app, infrastructure and package. If there is no port in the project, it is not asked which port to implement in the creation screen.
 
 You can create a port manually like bellow.
 
 ```go
-// internal/domain/<domainname>/port/<portfilename>.go
+// internal/port/user.go
 
 package port
 
-type ExamplePort interface {
-  Create(ctx context.Context) error
-  GetAll(ctx context.Context) ([]string, error)
+type UserController interface {
+  CreateUser(w http.ResponseWriter, r *http.Request)
+  GetUserByID(w http.ResponseWriter, r *http.Request)
+  GetAllUsers(w http.ResponseWriter, r *http.Request)
+  UpdateUserByID(w http.ResponseWriter, r *http.Request)
+  DeleteUserByID(w http.ResponseWriter, r *http.Request)
 }
+
+type UserService interface {
+  CreateUser(ctx context.Context, params dto.CreateUserParams) (string, error)
+  GetUserByID(ctx context.Context, userID string) (*dto.User, error)
+  GetAllUsers(ctx context.Context) ([]*dto.User, error)
+  UpdateUserByID(ctx context.Context, params dto.UpdateUserParams) error
+  DeleteUserByID(ctx context.Context, userID string) error
+}
+
+type UserRepository interface {
+  CreateUser(ctx context.Context, params dto.CreateUserParams) (string, error)
+  GetUserByID(ctx context.Context, userID string) (*dto.User, error)
+  GetAllUsers(ctx context.Context) ([]*dto.User, error)
+  UpdateUserByID(ctx context.Context, params dto.UpdateUserParams) error
+  DeleteUserByID(ctx context.Context, userID string) error
+}
+
 ```
 
 You can use this port when creating a new service, app, infrastructure or package.
 
 - #### `ls`:
 
-  This command lists all ports under the `internal/domain/<domainname>/port`
+  This command lists all ports under the `internal/port` directory.
 
   **Flags:**
   - `-l`: lists ports line-by-line
 
-  ![](./doc/04-port-ls.gif)
+  ![](./doc/img/port-ls.gif)
 
 
 
@@ -233,7 +200,7 @@ This is the parent command for all service-related (domain-service) operations.
   hexago service new
   ```
 
-  ![](./doc/05-service-new.gif)
+  ![](./doc/img/service-new.gif)
 
 - #### `ls`
 
@@ -245,7 +212,7 @@ This is the parent command for all service-related (domain-service) operations.
   **Flags:**
   - `-l`: lists services line-by-line
   
-  ![](./doc/06-service-ls.gif)
+  ![](./doc/img/service-ls.gif)
 
 ### `app`
 This is the parent command for all application-related (application-service) operations.
@@ -268,7 +235,7 @@ Application services are the places where endpoints such as controllers or cli a
   hexago app new
   ```
 
-  ![](./doc/07-app-new.gif)
+  ![](./doc/img/app-new.gif)
 
 - #### `ls`
 
@@ -280,7 +247,7 @@ Application services are the places where endpoints such as controllers or cli a
   **Flags:**
   - `-l`: lists applications line-by-line
   
-  ![](./doc/08-app-ls.gif)
+  ![](./doc/img/app-ls.gif)
 
 ### `infra`
 This is the parent command for all infrastructure-related operations.
@@ -302,7 +269,7 @@ Infrastructures host databases (repositories), cache adapters or APIs that we de
   hexago infra new
   ```
 
-  ![](./doc/09-infra-new.gif)
+  ![](./doc/img/infra-new.gif)
 
 - #### `ls`
 
@@ -314,7 +281,7 @@ Infrastructures host databases (repositories), cache adapters or APIs that we de
   **Flags:**
   - `-l`: lists infrastructures line-by-line
   
-  ![](./doc/10-infra-ls.gif)
+  ![](./doc/img/infra-ls.gif)
 
 ### `pkg`
 This is the parent command for all package-related operations.
@@ -339,7 +306,7 @@ Packages are the location where we host features such as utils. There are two ty
   hexago pkg new
   ```
 
-  ![](./doc/11-pkg-new.gif)
+  ![](./doc/img/pkg-new.gif)
 
 - #### `ls`
 
@@ -353,7 +320,7 @@ Packages are the location where we host features such as utils. There are two ty
   - `-a`: list both global and internal packages.
   - `-l`: lists packages line-by-line
   
-  ![](./doc/12-pkg-ls.gif)
+  ![](./doc/img/pkg-ls.gif)
 
 ### `cmd`
 This is the parent command for all entry point-related (cmd) operations.
@@ -373,16 +340,27 @@ Entry points are the places where a go application will start running. entry poi
   ```go
   package main
 
-  func main(){
+  import (
+    "fmt"
+    "os"
+    "path/filepath"
+    "strings"
+  )
 
+  func main() {
+    fmt.Printf("Hello from %s!\n", strings.ToUpper(filepath.Base(os.Args[0])))
+    if env, ok := os.LookupEnv("MY_ENV"); ok {
+      fmt.Println("MY_ENV ->", env)
+    }
   }
+
   ```
 
   ```sh
   hexago cmd new
   ```
 
-  ![](./doc/13-cmd-new.gif)
+  ![](./doc/img/cmd-new.gif)
 
 - #### `ls`
 
@@ -394,7 +372,7 @@ Entry points are the places where a go application will start running. entry poi
   **Flags:**
   - `-l`: lists entry points line-by-line
   
-  ![](./doc/14-cmd-ls.gif)
+  ![](./doc/img/cmd-ls.gif)
 
 ### `run`
 This command can be used for two different purposes. the `run` command create a log file under the `logs` directory defaultly.
@@ -405,7 +383,7 @@ This command can be used for two different purposes. the `run` command create a 
   hexago run <entry-point-name>
   ```
 
-  ![](./doc/15-run.gif)
+  ![](./doc/img/run.gif)
 
   **Flags:**
   - `-e`: run entry point with environment variable. You can use multiple environment variable
@@ -413,7 +391,7 @@ This command can be used for two different purposes. the `run` command create a 
     hexago run <entry-point-name> -e <ENV_KEY1>=<ENV_VALUE1> -e <ENV_KEY2>=<ENV_VALUE2>
     ```
 
-  ![](./doc/16-run-with-env.gif)
+  ![](./doc/img/run-with-env.gif)
   
   You can customize this run command with given entry point in `.hexago/config.yaml` file.
 
@@ -464,7 +442,7 @@ This command prints hexagonal structure of project.
 hexago tree
 ```
 
-![](./doc/17-tree.gif)
+![](./doc/img/tree.gif)
 
 ## Templates
 
@@ -529,16 +507,15 @@ For example, the `std` template is as follows.
 ```gotmpl
 package {{.PkgName}}
 
-import "github.com/samber/do"
-{{if and .AssertInterface (ne .ImportName "") (ne .InterfaceName "") (ne .ImportPath "")}}
-import {{.ImportName}} "{{.ImportPath}}"
+{{if and .AssertInterface (ne .InterfaceName "") (ne .ImportPath "")}}
+import "{{.ImportPath}}"
 
-var _ {{.ImportName}}.{{.InterfaceName}} = (*{{.StructName}})(nil)
+var _ port.{{.InterfaceName}} = (*{{.StructName}})(nil)
 {{end}}
 
 type {{.StructName}} struct{}
 
-func New(i *do.Injector) (*{{.StructName}}, error) {
+func New() (*{{.StructName}}, error) {
   return &{{.StructName}}{}, nil
 }
 

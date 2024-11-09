@@ -1,5 +1,15 @@
 package main
 
-func main() {
+import (
+  "fmt"
+  "os"
+  "path/filepath"
+  "strings"
+)
 
+func main() {
+  fmt.Printf("Hello from %s!\n", strings.ToUpper(filepath.Base(os.Args[0])))
+  if env, ok := os.LookupEnv("MY_ENV"); ok {
+    fmt.Println("MY_ENV ->", env)
+  }
 }
