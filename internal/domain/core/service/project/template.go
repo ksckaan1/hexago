@@ -202,7 +202,7 @@ type InterfaceInfo struct {
 	ImportPath     string
 }
 
-func (p *Project) getInterfaceInfo(ctx context.Context, interfaceParam string) (*InterfaceInfo, error) {
+func (p *Project) getInterfaceInfo(_ context.Context, interfaceParam string) (*InterfaceInfo, error) {
 	isPortParam := rgxPortParam.MatchString(interfaceParam)
 	isNormalParam := rgxNormalParam.MatchString(interfaceParam)
 
