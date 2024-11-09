@@ -3,9 +3,9 @@ package project
 import (
 	"context"
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/samber/do"
 )
 

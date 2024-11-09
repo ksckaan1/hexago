@@ -3,11 +3,11 @@ package appcmd
 import (
 	"errors"
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"

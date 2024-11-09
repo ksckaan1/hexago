@@ -2,11 +2,11 @@ package config
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/port"
 	"os"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/domain/core/model"
-	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/samber/do"
 	"gopkg.in/yaml.v3"
 )

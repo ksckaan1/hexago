@@ -2,9 +2,9 @@ package entrypointcmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/port"
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
