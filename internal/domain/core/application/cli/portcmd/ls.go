@@ -2,11 +2,10 @@ package portcmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
-	"slices"
 	"strings"
 
-	"github.com/charmbracelet/huh"
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
 	"github.com/samber/do"
 	"github.com/samber/lo"
@@ -49,9 +48,14 @@ func (c *PortLSCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *PortLSCommand) init() {
-	c.cmd.RunE = c.runner
-	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago domain ls -l")
-	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d <domainname>")
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
+	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago port ls -l")
 }
 
 func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
@@ -63,31 +67,6 @@ func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
 	allPorts, err := projectService.GetAllPorts(cmd.Context())
 	if err != nil {
 		fmt.Println("")
-		return fmt.Errorf("domain not found: %s", *c.flagDomain)
-	}
-
-	allPorts := make([]string, 0)
-
-	for i := range domains {
-		if !(*c.flagDomain == "*" || domains[i] == *c.flagDomain) {
-			continue
-		}
-
-		ports, err2 := projectService.GetAllPorts(cmd.Context(), domains[i])
-		if err2 != nil {
-			fmt.Println("")
-			c.tuilog.Error(err2.Error())
-			fmt.Println("")
-			return fmt.Errorf("project service: get all ports: %w", err2)
-		}
-
-		if *c.flagDomain == "*" {
-			for j := range ports {
-				ports[j] = domains[i] + ":" + ports[j]
-			}
-		}
-
-		allPorts = append(allPorts, ports...)
 		c.tuilog.Error(err.Error())
 		fmt.Println("")
 		return fmt.Errorf("project service: get all ports: %w", err)

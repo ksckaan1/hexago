@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"os"
 
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli"
@@ -65,6 +67,22 @@ func main() {
 
 	err = c.Run(ctx)
 	if err != nil {
+		if !errors.Is(err, dto.ErrSuppressed) {
+			fmt.Println(unwrapAllErrors(err))
+		}
 		os.Exit(1)
+	}
+}
+
+func unwrapAllErrors(err error) error {
+	if err == nil {
+		return nil
+	}
+	for {
+		uw := errors.Unwrap(err)
+		if uw == nil {
+			return err
+		}
+		err = uw
 	}
 }

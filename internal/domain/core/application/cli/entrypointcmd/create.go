@@ -43,7 +43,13 @@ func (c *EntryPointCreateCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *EntryPointCreateCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 }
 
 func (c *EntryPointCreateCommand) runner(cmd *cobra.Command, args []string) error {

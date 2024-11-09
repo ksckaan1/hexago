@@ -14,6 +14,7 @@ var (
 	ErrInvalidCmdName       = errors.New("invalid cmd name")
 	ErrTemplateCanNotParsed = errors.New("template can not parsed")
 	ErrAlreadyExist         = errors.New("already exist")
+	ErrSuppressed           = errors.New("")
 )
 
 // Custom errors

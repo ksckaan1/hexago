@@ -2,6 +2,7 @@ package runnercmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
@@ -49,7 +50,13 @@ func (c *RunnerCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *RunnerCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 	c.flagEnvVars = c.cmd.Flags().StringSliceP("env", "e", nil, "hexago run <runner> -e <KEY1>=<VALUE1> -e <KEY1>=<VALUE1>")
 	c.flagVerbose = c.cmd.Flags().BoolP("verbose", "v", false, "hexago run <runner> -v")
 }

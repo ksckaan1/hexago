@@ -2,6 +2,7 @@ package packagecmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
@@ -47,7 +48,13 @@ func (c *PackageLSCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *PackageLSCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago pkg ls -l")
 	c.flagGlobal = c.cmd.Flags().BoolP("global", "g", false, "hexago pkg ls -g")
 	c.flagAll = c.cmd.Flags().BoolP("all", "a", false, "hexago pkg ls -a")

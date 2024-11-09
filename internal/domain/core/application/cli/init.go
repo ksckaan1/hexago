@@ -59,7 +59,13 @@ func (c *InitCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *InitCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 }
 
 func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {

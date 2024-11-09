@@ -2,6 +2,7 @@ package domaincmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
@@ -49,7 +50,13 @@ func (c *DomainLSCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *DomainLSCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago domain ls -l")
 }
 

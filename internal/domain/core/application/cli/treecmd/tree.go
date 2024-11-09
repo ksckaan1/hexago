@@ -2,6 +2,7 @@ package treecmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/charmbracelet/lipgloss"
@@ -46,7 +47,13 @@ func (c *TreeCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *TreeCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 }
 
 func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {

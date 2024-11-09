@@ -2,6 +2,7 @@ package appcmd
 
 import (
 	"fmt"
+	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/ksckaan1/hexago/internal/port"
 	"slices"
 	"strings"
@@ -48,7 +49,13 @@ func (c *AppLSCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *AppLSCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago app ls -l")
 	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago app ls -d <domainname>")
 }

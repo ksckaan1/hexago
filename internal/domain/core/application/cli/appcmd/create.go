@@ -45,7 +45,13 @@ func (c *AppCreateCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *AppCreateCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 }
 
 func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {

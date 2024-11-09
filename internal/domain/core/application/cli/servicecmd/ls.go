@@ -52,7 +52,13 @@ func (c *ServiceLSCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *ServiceLSCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 	c.flagLine = c.cmd.Flags().BoolP("line", "l", false, "hexago service ls -l")
 	c.flagDomain = c.cmd.Flags().StringP("domain", "d", "", "hexago service ls -d <domainname>")
 }

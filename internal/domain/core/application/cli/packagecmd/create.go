@@ -46,7 +46,13 @@ func (c *PackageCreateCommand) AddCommand(cmds ...Commander) {
 }
 
 func (c *PackageCreateCommand) init() {
-	c.cmd.RunE = c.runner
+	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		err := c.runner(cmd, args)
+		if err != nil {
+			return dto.ErrSuppressed
+		}
+		return nil
+	}
 }
 
 func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
@@ -93,19 +99,6 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("select pkg name: %w", err)
 	}
 
-	allPorts := make([]string, 0)
-
-	for i := range domains {
-		ports, err := projectService.GetAllPorts(cmd.Context(), domains[i])
-		if err != nil {
-			fmt.Println("")
-			c.tuilog.Error(err.Error())
-			fmt.Println("")
-			return fmt.Errorf("get all ports: %w", err)
-		}
-		for j := range ports {
-			allPorts = append(allPorts, domains[i]+":"+ports[j])
-		}
 	allPorts, err := projectService.GetAllPorts(cmd.Context())
 	if err != nil {
 		fmt.Println("")
@@ -245,10 +238,8 @@ func (c *PackageCreateCommand) selectPort(allPorts []string, instanceName string
 					Title("Do you want to assert port?").
 					Description(
 						fmt.Sprintf(
-							"var _ %sport.%s = (*%s)(nil)",
-							strings.Split(portName, ":")[0],
-							strings.Split(portName, ":")[1],
 							"var _ port.%s = (*%s)(nil)",
+							portName,
 							instanceName,
 						),
 					).
