@@ -81,7 +81,7 @@ func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd 
 		}
 		closers = append(closers, stdErrFile)
 
-		cmd.Stderr = io.MultiWriter(os.Stderr, stdErrFile)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &decolorizer{stdErrFile})
 
 		stdOutFile, err2 := p.createLogFile(commandName+".stdout", runner.Log.Overwrite)
 		if err2 != nil {
@@ -89,7 +89,7 @@ func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd 
 		}
 		closers = append(closers, stdOutFile)
 
-		cmd.Stdout = io.MultiWriter(os.Stdout, stdOutFile)
+		cmd.Stdout = io.MultiWriter(os.Stdout, &decolorizer{stdOutFile})
 	} else {
 		logFile, err2 := p.createLogFile(commandName, runner.Log.Overwrite)
 		if err2 != nil {
@@ -97,8 +97,8 @@ func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd 
 		}
 		closers = append(closers, logFile)
 
-		cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
-		cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &decolorizer{logFile})
+		cmd.Stdout = io.MultiWriter(os.Stdout, &decolorizer{logFile})
 	}
 
 	return closers, nil
