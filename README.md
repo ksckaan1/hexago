@@ -1,8 +1,9 @@
 ![Hexago](doc/hexago.png)
 
 [![tag](https://img.shields.io/github/tag/ksckaan1/hexago.svg)](https://github.com/ksckaan1/m2s/releases)
-![Go Version](https://img.shields.io/badge/Go-1.23.0-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-1.23.4-%23007d9c)
 [![Go report](https://goreportcard.com/badge/github.com/ksckaan1/hexago)](https://goreportcard.com/report/github.com/ksckaan1/hexago)
+![m2s](https://img.shields.io/badge/coverage-62.3%25-green?style=flat)
 [![Contributors](https://img.shields.io/github/contributors/ksckaan1/hexago)](https://github.com/ksckaan1/hexago/graphs/contributors)
 [![LICENSE](https://img.shields.io/badge/LICENCE-MIT-orange?style=flat)](./LICENSE)
 
