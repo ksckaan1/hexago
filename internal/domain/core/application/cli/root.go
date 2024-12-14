@@ -20,7 +20,7 @@ func NewRootCommand(i *do.Injector) (*RootCommand, error) {
 			Use:           "hexago",
 			Short:         "short description",
 			Long:          header + "\nhexago is a cli tool for initializing and managing hexagonal Go projects.",
-			Version:       "v0.0.1",
+			Version:       "v0.5.0",
 			SilenceUsage:  true,
 			SilenceErrors: true,
 		},
