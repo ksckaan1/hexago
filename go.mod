@@ -1,6 +1,6 @@
 module github.com/ksckaan1/hexago
 
-go 1.23
+go 1.23.4
 
 require (
 	github.com/charmbracelet/huh v0.5.2
