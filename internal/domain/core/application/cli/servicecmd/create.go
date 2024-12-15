@@ -3,24 +3,29 @@ package servicecmd
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*ServiceCreateCommand)(nil)
+
 type ServiceCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
+	cfg            *config.Config
 }
 
-func NewServiceCreateCommand(i *do.Injector) (*ServiceCreateCommand, error) {
+func NewServiceCreateCommand(projectService ProjectService, cfg *config.Config, tl *tuilog.TUILog) (*ServiceCreateCommand, error) {
 	return &ServiceCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -28,8 +33,9 @@ func NewServiceCreateCommand(i *do.Injector) (*ServiceCreateCommand, error) {
 			Short:   "Create a service",
 			Long:    `Create a service`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
+		cfg:            cfg,
 	}, nil
 }
 
@@ -38,53 +44,39 @@ func (c *ServiceCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *ServiceCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *ServiceCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *ServiceCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	err := c.cfg.Load()
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
-	cfg, err := do.Invoke[port.ConfigService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke config service: %w", err)
-	}
-
-	err = cfg.Load(".hexago/config.yaml")
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("load config: %w", err)
+		return fmt.Errorf("cfg.Load: %w", err)
 	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
+
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("")
+
 		c.tuilog.Error("No domains found.\nA domain needs to be created first")
-		fmt.Println("")
+
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
@@ -99,7 +91,7 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			huh.NewInput().
 				Title("What’s service name?").
 				Placeholder("ServiceName").
-				Validate(projectService.ValidateInstanceName).
+				Validate(c.projectService.ValidateInstanceName).
 				Description("Service name must be PascalCase").
 				Value(&serviceName),
 		).WithShowHelp(true),
@@ -108,7 +100,7 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input service name: %w", err)
 	}
 
-	pkgName, err := c.selectPkgName(projectService, serviceName)
+	pkgName, err := c.selectPkgName(serviceName)
 	if err != nil {
 		return fmt.Errorf("select pkg name: %w", err)
 	}
@@ -132,19 +124,19 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			).WithShowHelp(true),
 		).Run()
 		if err2 != nil {
-			fmt.Println("")
+
 			c.tuilog.Error("Select a domain: " + err2.Error())
-			fmt.Println("")
+
 			return fmt.Errorf("select a domain: %w", err2)
 		}
 	}
 
-	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	allPorts, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("get all ports: %w", err)
+
+		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, serviceName)
@@ -152,9 +144,9 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("select port: %w", err)
 	}
 
-	serviceFile, err := projectService.CreateService(
+	serviceFile, err := c.projectService.CreateService(
 		cmd.Context(),
-		dto.CreateServiceParams{
+		model.CreateServiceParams{
 			TargetDomain:    domainName,
 			StructName:      serviceName,
 			PackageName:     pkgName,
@@ -163,34 +155,32 @@ func (c *ServiceCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		},
 	)
 	if err != nil {
-		fmt.Println("")
-		if errors.Is(err, dto.ErrInvalidInstanceName) {
+
+		if errors.Is(err, customerrors.ErrInvalidInstanceName) {
 			c.tuilog.Error("Service name not valid\nMust be <PascalCase>")
-		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+		} else if errors.Is(err, customerrors.ErrInvalidPkgName) {
 			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
-		} else if errors.Is(err, dto.ErrDomainNotFound) {
+		} else if errors.Is(err, customerrors.ErrDomainNotFound) {
 			c.tuilog.Error("Domain not found")
-		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+		} else if errors.Is(err, customerrors.ErrTemplateCanNotParsed) {
 			c.tuilog.Error("Template can not parsed")
-		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+		} else if err2, ok1 := lo.ErrorsAs[customerrors.ErrTemplateCanNotExecute](err); ok1 {
 			c.tuilog.Error("Template can not execute\n" + err2.Message)
-		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+		} else if err2, ok2 := lo.ErrorsAs[customerrors.ErrFormatGoFile](err); ok2 {
 			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
 		} else {
 			c.tuilog.Error(err.Error())
 		}
-		fmt.Println("")
-		return fmt.Errorf("project service: create service: %w", err)
+
+		return fmt.Errorf("projectService.CreateService: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("Service created\n" + serviceFile)
-	fmt.Println("")
 
 	return nil
 }
 
-func (c *ServiceCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+func (c *ServiceCreateCommand) selectPkgName(instanceName string) (string, error) {
 	var pkgName string
 	err := huh.NewForm(
 		huh.NewGroup(
@@ -201,7 +191,7 @@ func (c *ServiceCreateCommand) selectPkgName(projectService port.ProjectService,
 					if s == "" {
 						return nil
 					}
-					return projectService.ValidatePkgName(s)
+					return c.projectService.ValidatePkgName(s)
 				}).
 				Description("Folder name must be lowercase").
 				Value(&pkgName),

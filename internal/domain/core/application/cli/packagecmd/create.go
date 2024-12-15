@@ -3,25 +3,30 @@ package packagecmd
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*PackageCreateCommand)(nil)
+
 type PackageCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
+	cfg            *config.Config
 }
 
-func NewPackageCreateCommand(i *do.Injector) (*PackageCreateCommand, error) {
+func NewPackageCreateCommand(projectService ProjectService, cfg *config.Config, tl *tuilog.TUILog) (*PackageCreateCommand, error) {
 	return &PackageCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -29,8 +34,9 @@ func NewPackageCreateCommand(i *do.Injector) (*PackageCreateCommand, error) {
 			Short:   "Create a package",
 			Long:    `Create a package`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
+		cfg:            cfg,
 	}, nil
 }
 
@@ -39,39 +45,27 @@ func (c *PackageCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *PackageCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *PackageCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *PackageCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	err := c.cfg.Load()
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	cfg, err := do.Invoke[port.ConfigService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke config service: %w", err)
-	}
-
-	err = cfg.Load(".hexago/config.yaml")
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("load config: %w", err)
+
+		return fmt.Errorf("cfg.Load: %w", err)
 	}
 
 	var packageName string
@@ -85,7 +79,7 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			huh.NewInput().
 				Title("What’s package name?").
 				Placeholder("PackageName").
-				Validate(projectService.ValidateInstanceName).
+				Validate(c.projectService.ValidateInstanceName).
 				Description("Package name must be PascalCase").
 				Value(&packageName),
 		).WithShowHelp(true),
@@ -94,17 +88,17 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input package name: %w", err)
 	}
 
-	pkgName, err := c.selectPkgName(projectService, packageName)
+	pkgName, err := c.selectPkgName(packageName)
 	if err != nil {
 		return fmt.Errorf("select pkg name: %w", err)
 	}
 
-	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	allPorts, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("get all ports: %w", err)
+
+		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, packageName)
@@ -120,25 +114,25 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 				Title("Select package scope").
 				Options(
 					huh.NewOption(
-						fmt.Sprintf("internal (\"%s\")", filepath.Join("internal", "pkg", "*")),
+						fmt.Sprintf("internal (%q)", filepath.Join("internal", "pkg", "*")),
 						false),
 					huh.NewOption(
-						fmt.Sprintf("global (\"%s\")", filepath.Join("pkg", "*")),
+						fmt.Sprintf("global (%q)", filepath.Join("pkg", "*")),
 						true),
 				).
 				Value(&isGlobal),
 		).WithShowHelp(true),
 	).Run()
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error("Select a port: ", err.Error())
-		fmt.Println("")
+
 		return fmt.Errorf("select is global: %w", err)
 	}
 
-	packageFile, err := projectService.CreatePackage(
+	packageFile, err := c.projectService.CreatePackage(
 		cmd.Context(),
-		dto.CreatePackageParams{
+		model.CreatePackageParams{
 			StructName:      packageName,
 			PackageName:     pkgName,
 			PortParam:       portInfo.portName,
@@ -147,32 +141,30 @@ func (c *PackageCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		},
 	)
 	if err != nil {
-		fmt.Println("")
-		if errors.Is(err, dto.ErrInvalidInstanceName) {
+
+		if errors.Is(err, customerrors.ErrInvalidInstanceName) {
 			c.tuilog.Error("Package name not valid\nMust be <PascalCase>")
-		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+		} else if errors.Is(err, customerrors.ErrInvalidPkgName) {
 			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
-		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+		} else if errors.Is(err, customerrors.ErrTemplateCanNotParsed) {
 			c.tuilog.Error("Template can not parsed")
-		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+		} else if err2, ok1 := lo.ErrorsAs[customerrors.ErrTemplateCanNotExecute](err); ok1 {
 			c.tuilog.Error("Template can not execute\n" + err2.Message)
-		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+		} else if err2, ok2 := lo.ErrorsAs[customerrors.ErrFormatGoFile](err); ok2 {
 			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
 		} else {
 			c.tuilog.Error(err.Error())
 		}
-		fmt.Println("")
-		return fmt.Errorf("project service: create package: %w", err)
+
+		return fmt.Errorf("projectService.CreatePackage: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("Package created\n" + packageFile)
-	fmt.Println("")
 
 	return nil
 }
 
-func (c *PackageCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+func (c *PackageCreateCommand) selectPkgName(instanceName string) (string, error) {
 	var pkgName string
 	err := huh.NewForm(
 		huh.NewGroup(
@@ -183,7 +175,7 @@ func (c *PackageCreateCommand) selectPkgName(projectService port.ProjectService,
 					if s == "" {
 						return nil
 					}
-					return projectService.ValidatePkgName(s)
+					return c.projectService.ValidatePkgName(s)
 				}).
 				Description("Folder name must be lowercase").
 				Value(&pkgName),

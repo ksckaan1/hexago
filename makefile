@@ -1,6 +1,15 @@
+.PHONY: install
 install:
 	@go install .
 
+.PHONY: linter-fix
+linter-fix:
+	golangci-lint run --config=.golangci.yml --fix ./...
+	goimports-reviser \
+		-project-name github.com/ksckaan1/hexago \
+		-rm-unused -set-alias -format ./...
+
+.PHONY: generate-gifs
 generate-gifs:
 	mkdir -p tmp
 

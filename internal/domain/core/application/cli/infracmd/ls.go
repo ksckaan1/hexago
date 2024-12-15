@@ -2,26 +2,28 @@ package infracmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*InfraLSCommand)(nil)
+
 type InfraLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine *bool
 }
 
-func NewInfraLSCommand(i *do.Injector) (*InfraLSCommand, error) {
+func NewInfraLSCommand(projectService ProjectService, tl *tuilog.TUILog) (*InfraLSCommand, error) {
 	return &InfraLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -29,8 +31,8 @@ func NewInfraLSCommand(i *do.Injector) (*InfraLSCommand, error) {
 			Short:   "List Infrastructures",
 			Long:    `List Infrastructures`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -39,17 +41,15 @@ func (c *InfraLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *InfraLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *InfraLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *InfraLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -57,17 +57,12 @@ func (c *InfraLSCommand) init() {
 }
 
 func (c *InfraLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	infras, err := c.projectService.GetAllInfrastructures(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	infras, err := projectService.GetAllInfrastructures(cmd.Context())
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all infrastructures: %w", err)
+
+		return fmt.Errorf("projectService.GetAllInfrastructures: %w", err)
 	}
 
 	seperator := lo.Ternary(*c.flagLine, "\n", " ")

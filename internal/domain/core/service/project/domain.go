@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllDomains(_ context.Context) ([]string, error) {
@@ -38,16 +40,16 @@ func (p *Project) isDomainExist(ctx context.Context, targetDomain string) error 
 	}
 
 	if !slices.Contains(domains, targetDomain) {
-		return fmt.Errorf("target domain not found: %w (%s)", dto.ErrDomainNotFound, targetDomain)
+		return fmt.Errorf("target domain not found: %w (%s)", customerrors.ErrDomainNotFound, targetDomain)
 	}
 
 	return nil
 }
 
-func (p *Project) CreateDomain(ctx context.Context, params dto.CreateDomainParams) error {
+func (p *Project) CreateDomain(ctx context.Context, params model.CreateDomainParams) error {
 	err := p.isDomainExist(ctx, params.DomainName)
 	if err == nil {
-		return fmt.Errorf("is domain exist: %w", dto.ErrAlreadyExist)
+		return fmt.Errorf("is domain exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	err = p.ValidatePkgName(params.DomainName)

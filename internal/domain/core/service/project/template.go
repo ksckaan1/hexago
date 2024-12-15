@@ -13,8 +13,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
 )
 
 type TemplateType string
@@ -76,10 +77,10 @@ func (p *Project) generateGoInitFile(ctx context.Context, dir, structName, pkgNa
 		"AssertInterface": assertInterface,
 	})
 	if err != nil {
-		return "", fmt.Errorf("template: execute: %w", dto.ErrTemplateCanNotExecute{Message: err.Error()})
+		return "", fmt.Errorf("template: execute: %w", customerrors.ErrTemplateCanNotExecute{Message: err.Error()})
 	}
 
-	err = os.WriteFile(targetFilePath, buf.Bytes(), 0o644)
+	err = os.WriteFile(targetFilePath, buf.Bytes(), 0o600)
 	if err != nil {
 		return "", fmt.Errorf("os: write file: %w", err)
 	}
@@ -106,12 +107,11 @@ func (p *Project) parseTemplate(templateMode, templateName string) (*template.Te
 
 		tmpl, err := template.ParseFiles(templatePath)
 		if err != nil {
-			return nil, fmt.Errorf("template: parse files: %w", errors.Join(err, dto.ErrTemplateCanNotParsed))
+			return nil, fmt.Errorf("template: parse files: %w", errors.Join(err, customerrors.ErrTemplateCanNotParsed))
 		}
 
 		return tmpl, nil
 	}
-
 }
 
 var rgxInterfaces = regexp.MustCompile(`(?m)^type\s([A-Z][a-zA-Z0-9]+)\sinterface`)
@@ -198,8 +198,8 @@ var (
 type InterfaceInfo struct {
 	InterfaceName  string
 	ImplementParam string
-	IsInDomain     bool
 	ImportPath     string
+	IsInDomain     bool
 }
 
 func (p *Project) getInterfaceInfo(_ context.Context, interfaceParam string) (*InterfaceInfo, error) {
@@ -207,7 +207,7 @@ func (p *Project) getInterfaceInfo(_ context.Context, interfaceParam string) (*I
 	isNormalParam := rgxNormalParam.MatchString(interfaceParam)
 
 	if !(isPortParam || isNormalParam) {
-		return nil, dto.ErrInvalidPortName{PortName: interfaceParam}
+		return nil, customerrors.ErrInvalidPortName{PortName: interfaceParam}
 	}
 
 	if isNormalParam {
@@ -251,7 +251,7 @@ func (p *Project) formatGoFiles(ctx context.Context, goFilePaths ...string) erro
 
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("cmd: run: %w", dto.ErrFormatGoFile{Message: stdErr.String()})
+		return fmt.Errorf("cmd: run: %w", customerrors.ErrFormatGoFile{Message: stdErr.String()})
 	}
 
 	return nil

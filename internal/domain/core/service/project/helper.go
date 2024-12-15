@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
+	"github.com/ksckaan1/hexago/internal/customerrors"
 )
 
 func (*Project) getTerminalName() (string, error) {
@@ -30,7 +30,7 @@ func (*Project) createProjectDir(dirParam string) (string, error) {
 
 	stat, err := os.Stat(projectPath)
 	if !os.IsNotExist(err) && !stat.IsDir() {
-		return "", fmt.Errorf("stat: is dir: %w", dto.ErrDirMustBeFolder)
+		return "", fmt.Errorf("stat: is dir: %w", customerrors.ErrDirMustBeFolder)
 	}
 
 	if os.IsNotExist(err) {
@@ -63,7 +63,7 @@ func (*Project) createHexagoConfigs(projectPath string) error {
 		return fmt.Errorf("assets: read file: %w", err)
 	}
 
-	err = os.WriteFile(configPath, configContent, 0o644)
+	err = os.WriteFile(configPath, configContent, 0o600)
 	if err != nil {
 		return fmt.Errorf("os: write file: %w", err)
 	}
@@ -83,7 +83,7 @@ func (*Project) addGitignore(projectPath string) error {
 		return fmt.Errorf("assets: read file: %w", err)
 	}
 
-	err = os.WriteFile(filepath.Join(projectPath, ".gitignore"), configContent, 0o644)
+	err = os.WriteFile(filepath.Join(projectPath, ".gitignore"), configContent, 0o600)
 	if err != nil {
 		return fmt.Errorf("os: write file: %w", err)
 	}
@@ -122,7 +122,7 @@ var instanceNameRgx = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
 
 func (*Project) ValidateInstanceName(instanceName string) error {
 	if !instanceNameRgx.MatchString(instanceName) {
-		return dto.ErrInvalidInstanceName
+		return customerrors.ErrInvalidInstanceName
 	}
 	return nil
 }
@@ -131,7 +131,7 @@ var pkgNameRgx = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 
 func (*Project) ValidatePkgName(pkgName string) error {
 	if !pkgNameRgx.MatchString(pkgName) {
-		return dto.ErrInvalidPkgName
+		return customerrors.ErrInvalidPkgName
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ var pkgCmdRgx = regexp.MustCompile(`^[a-z][a-z0-9\-]*$`)
 
 func (*Project) ValidateEntryPointName(entryPointName string) error {
 	if !pkgCmdRgx.MatchString(entryPointName) {
-		return dto.ErrInvalidCmdName
+		return customerrors.ErrInvalidCmdName
 	}
 	return nil
 }

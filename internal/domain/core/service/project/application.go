@@ -8,8 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllApplications(ctx context.Context, targetDomain string) ([]string, error) {
@@ -50,7 +52,7 @@ func (p *Project) isApplicationExist(ctx context.Context, targetDomain, targetAp
 	return nil
 }
 
-func (p *Project) CreateApplication(ctx context.Context, params dto.CreateApplicationParams) (string, error) {
+func (p *Project) CreateApplication(ctx context.Context, params model.CreateApplicationParams) (string, error) {
 	err := p.ValidateInstanceName(params.StructName)
 	if err != nil {
 		return "", fmt.Errorf("validate instance name: %w", err)
@@ -72,7 +74,7 @@ func (p *Project) CreateApplication(ctx context.Context, params dto.CreateApplic
 
 	err = p.isApplicationExist(ctx, params.TargetDomain, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("is application exist: %w", dto.ErrAlreadyExist)
+		return "", fmt.Errorf("is application exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	applicationDir := filepath.Join("internal", "domain", params.TargetDomain, "application", params.PackageName)

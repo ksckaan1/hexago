@@ -2,28 +2,26 @@ package treecmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/tree"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*TreeCommand)(nil)
 
 type TreeCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	projectService ProjectService
+	tuilog         *tuilog.TUILog
 }
 
-func NewTreeCommand(i *do.Injector) (*TreeCommand, error) {
+func NewTreeCommand(projectService ProjectService, tl *tuilog.TUILog) (*TreeCommand, error) {
 	return &TreeCommand{
 		cmd: &cobra.Command{
 			Use:     "tree",
@@ -31,7 +29,8 @@ func NewTreeCommand(i *do.Injector) (*TreeCommand, error) {
 			Short:   "Project structure tree",
 			Long:    `Project structure tree`,
 		},
-		injector: i,
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -40,54 +39,47 @@ func (c *TreeCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *TreeCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *TreeCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *TreeCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	moduleName, err := c.projectService.GetModuleName("go.mod")
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
+		return fmt.Errorf("projectService.GetModuleName: %w", err)
 	}
 
-	moduleName, err := projectService.GetModuleName("go.mod")
+	entryPoints, err := c.projectService.GetAllEntryPoints(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("project service: get module name: %w", err)
+		return fmt.Errorf("projectService.GetAllEntryPoints: %w", err)
 	}
 
-	entryPoints, err := projectService.GetAllEntryPoints(cmd.Context())
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("project service: get all entry points: %w", err)
-	}
-
-	domains, err := projectService.GetAllDomains(cmd.Context())
-	if err != nil {
-		return fmt.Errorf("project service: get all domains: %w", err)
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	domainTree := make([]any, len(domains))
 
 	for i := range domains {
-		services, err := projectService.GetAllServices(cmd.Context(), domains[i])
-		if err != nil {
-			return fmt.Errorf("project service: get all services: %w", err)
+		services, err2 := c.projectService.GetAllServices(cmd.Context(), domains[i])
+		if err2 != nil {
+			return fmt.Errorf("projectService.GetAllServices: %w", err2)
 		}
 
-		apps, err := projectService.GetAllApplications(cmd.Context(), domains[i])
-		if err != nil {
-			return fmt.Errorf("project service: get all applications: %w", err)
+		apps, err2 := c.projectService.GetAllApplications(cmd.Context(), domains[i])
+		if err2 != nil {
+			return fmt.Errorf("projectService.GetAllApplications: %w", err2)
 		}
 
 		domainTree = append(domainTree, tree.Root(domains[i]).Child(
@@ -98,24 +90,24 @@ func (c *TreeCommand) runner(cmd *cobra.Command, _ []string) error {
 		))
 	}
 
-	globalPackages, err := projectService.GetAllPackages(cmd.Context(), true)
+	globalPackages, err := c.projectService.GetAllPackages(cmd.Context(), true)
 	if err != nil {
-		return fmt.Errorf("project service: get all global packages: %w", err)
+		return fmt.Errorf("projectService.GetAllPackages: %w", err)
 	}
 
-	internalPackages, err := projectService.GetAllPackages(cmd.Context(), false)
+	internalPackages, err := c.projectService.GetAllPackages(cmd.Context(), false)
 	if err != nil {
-		return fmt.Errorf("project service: get all internal packages: %w", err)
+		return fmt.Errorf("projectService.GetAllPackages: %w", err)
 	}
 
-	infras, err := projectService.GetAllInfrastructures(cmd.Context())
+	infras, err := c.projectService.GetAllInfrastructures(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("project service: get all infrastructures: %w", err)
+		return fmt.Errorf("projectService.GetAllInfrastructures: %w", err)
 	}
 
-	ports, err := projectService.GetAllPorts(cmd.Context())
+	ports, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("project service: get all ports: %w", err)
+		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
 	treePresentation := tree.Root(fmt.Sprintf("Project (%s)", moduleName)).Child(

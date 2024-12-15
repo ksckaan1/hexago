@@ -2,20 +2,22 @@ package packagecmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*PackageLSCommand)(nil)
+
 type PackageLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine   *bool
@@ -23,7 +25,7 @@ type PackageLSCommand struct {
 	flagAll    *bool
 }
 
-func NewPackageLSCommand(i *do.Injector) (*PackageLSCommand, error) {
+func NewPackageLSCommand(projectService ProjectService, tl *tuilog.TUILog) (*PackageLSCommand, error) {
 	return &PackageLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -31,8 +33,8 @@ func NewPackageLSCommand(i *do.Injector) (*PackageLSCommand, error) {
 			Short:   "List Packages",
 			Long:    `List Packages`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		tuilog:         tl,
+		projectService: projectService,
 	}, nil
 }
 
@@ -41,17 +43,15 @@ func (c *PackageLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *PackageLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *PackageLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *PackageLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -61,20 +61,15 @@ func (c *PackageLSCommand) init() {
 }
 
 func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
 	allPackages := make([]string, 0)
 
 	if *c.flagAll {
-		globalPackages, err := projectService.GetAllPackages(cmd.Context(), true)
+		globalPackages, err := c.projectService.GetAllPackages(cmd.Context(), true)
 		if err != nil {
-			fmt.Println("")
+
 			c.tuilog.Error(err.Error())
-			fmt.Println("")
-			return fmt.Errorf("project service: get all packages: %w", err)
+
+			return fmt.Errorf("projectService.GetAllPackages: %w", err)
 		}
 
 		globalPackages = lo.Map(globalPackages, func(p string, _ int) string {
@@ -83,12 +78,12 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 
 		allPackages = append(allPackages, globalPackages...)
 
-		packages, err := projectService.GetAllPackages(cmd.Context(), false)
+		packages, err := c.projectService.GetAllPackages(cmd.Context(), false)
 		if err != nil {
-			fmt.Println("")
+
 			c.tuilog.Error(err.Error())
-			fmt.Println("")
-			return fmt.Errorf("project service: get all packages: %w", err)
+
+			return fmt.Errorf("projectService.GetAllPackages: %w", err)
 		}
 
 		packages = lo.Map(packages, func(p string, _ int) string {
@@ -98,12 +93,12 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		allPackages = append(allPackages, packages...)
 
 	} else {
-		packages, err := projectService.GetAllPackages(cmd.Context(), *c.flagGlobal)
+		packages, err := c.projectService.GetAllPackages(cmd.Context(), *c.flagGlobal)
 		if err != nil {
-			fmt.Println("")
+
 			c.tuilog.Error(err.Error())
-			fmt.Println("")
-			return fmt.Errorf("project service: get all packages: %w", err)
+
+			return fmt.Errorf("projectService.GetAllPackages: %w", err)
 		}
 
 		allPackages = append(allPackages, packages...)

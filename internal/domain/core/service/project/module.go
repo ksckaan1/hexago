@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"golang.org/x/mod/modfile"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
 )
 
 func (*Project) initGoModule(ctx context.Context, moduleName string) error {
@@ -24,9 +25,9 @@ func (*Project) initGoModule(ctx context.Context, moduleName string) error {
 	}
 
 	if moduleName == "." {
-		abs, err := filepath.Abs(moduleName)
-		if err != nil {
-			return fmt.Errorf("filepath: abs: %w", err)
+		abs, err2 := filepath.Abs(moduleName)
+		if err2 != nil {
+			return fmt.Errorf("filepath: abs: %w", err2)
 		}
 
 		moduleName = filepath.Base(abs)
@@ -38,7 +39,7 @@ func (*Project) initGoModule(ctx context.Context, moduleName string) error {
 
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("cmd: run: %w", dto.ErrInitGoModule{Message: strings.TrimSpace(stdErr.String())})
+		return fmt.Errorf("cmd: run: %w", customerrors.ErrInitGoModule{Message: strings.TrimSpace(stdErr.String())})
 	}
 
 	return nil

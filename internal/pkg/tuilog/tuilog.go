@@ -1,12 +1,8 @@
 package tuilog
 
-import (
-	"github.com/samber/do"
-)
-
 type TUILog struct{}
 
-func New(_ *do.Injector) (*TUILog, error) {
+func New() (*TUILog, error) {
 	return &TUILog{}, nil
 }
 

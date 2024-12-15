@@ -1,26 +1,27 @@
-package cli
+package initcmd
 
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-var _ Commander = (*InitCommand)(nil)
+var _ port.Commander = (*InitCommand)(nil)
 
 type InitCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 }
 
 const initLongDescription = `init command initialize a hexagonal Go project.
@@ -32,7 +33,7 @@ Requires empty folder to init new project.`
 const initExamples = `hexago init <project-name> (prompts module name interactively)
 `
 
-func NewInitCommand(i *do.Injector) (*InitCommand, error) {
+func NewInitCommand(projectService ProjectService, tl *tuilog.TUILog) (*InitCommand, error) {
 	return &InitCommand{
 		cmd: &cobra.Command{
 			Use:     "init",
@@ -41,9 +42,8 @@ func NewInitCommand(i *do.Injector) (*InitCommand, error) {
 			Long:    initLongDescription,
 			Args:    cobra.ExactArgs(1),
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
-		// flags
+		tuilog:         tl,
+		projectService: projectService,
 	}, nil
 }
 
@@ -52,31 +52,24 @@ func (c *InitCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *InitCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *InitCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *InitCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
 	createModule := true
 
-	existingModuleName, err := projectService.GetModuleName(filepath.Join(args[0], "go.mod"))
+	existingModuleName, err := c.projectService.GetModuleName(filepath.Join(args[0], "go.mod"))
 	if err == nil {
 		err = huh.NewForm(
 			huh.NewGroup(
@@ -98,9 +91,9 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 		defaultModuleName := filepath.Base(args[0])
 
 		if defaultModuleName == "." {
-			abs, err := filepath.Abs(defaultModuleName)
-			if err != nil {
-				return fmt.Errorf("filepath: abs: %w", err)
+			abs, err2 := filepath.Abs(defaultModuleName)
+			if err2 != nil {
+				return fmt.Errorf("filepath: abs: %w", err2)
 			}
 
 			defaultModuleName = filepath.Base(abs)
@@ -124,23 +117,22 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	err = projectService.InitNewProject(cmd.Context(), dto.InitNewProjectParams{
+	err = c.projectService.InitNewProject(cmd.Context(), model.InitNewProjectParams{
 		ProjectDirectory: args[0],
 		ModuleName:       moduleName,
 		CreateModule:     createModule,
 	})
-
 	if err != nil {
-		fmt.Println("")
-		if errors.Is(err, dto.ErrDirMustBeFolder) {
+
+		if errors.Is(err, customerrors.ErrDirMustBeFolder) {
 			c.tuilog.Error("project dir must be folder")
-		} else if err2, ok := lo.ErrorsAs[dto.ErrInitGoModule](err); ok {
+		} else if err2, ok := lo.ErrorsAs[customerrors.ErrInitGoModule](err); ok {
 			c.tuilog.Error(err2.Message)
 		} else {
 			c.tuilog.Error(err.Error())
 		}
-		fmt.Println("")
-		return fmt.Errorf("project service: init new project: %w", err)
+
+		return fmt.Errorf("projectService.InitNewProject: %w", err)
 	}
 
 	msg := "Ready to go!"
@@ -148,9 +140,7 @@ func (c *InitCommand) runner(cmd *cobra.Command, args []string) error {
 		msg = "cd " + args[0]
 	}
 
-	fmt.Println("")
 	c.tuilog.Success(msg, "Project Initialized")
-	fmt.Println("")
 
 	return nil
 }

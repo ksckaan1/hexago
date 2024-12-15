@@ -1,21 +1,18 @@
 package appcmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*AppCommand)(nil)
 
 type AppCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewAppCommand(i *do.Injector) (*AppCommand, error) {
+func NewAppCommand() (*AppCommand, error) {
 	return &AppCommand{
 		cmd: &cobra.Command{
 			Use:     "app",
@@ -24,20 +21,13 @@ func NewAppCommand(i *do.Injector) (*AppCommand, error) {
 			Short:   "Application processes",
 			Long:    `Application processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *AppCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *AppCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *AppCommand) init() {
+func (c *AppCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

@@ -2,28 +2,25 @@ package doctorcmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*DoctorCommand)(nil)
 
 type DoctorCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 }
 
 const doctorLong = `doctor command check dependencies.`
 
-func NewDoctorCommand(i *do.Injector) (*DoctorCommand, error) {
+func NewDoctorCommand(projectService ProjectService, tl *tuilog.TUILog) (*DoctorCommand, error) {
 	return &DoctorCommand{
 		cmd: &cobra.Command{
 			Use:     "doctor",
@@ -31,8 +28,8 @@ func NewDoctorCommand(i *do.Injector) (*DoctorCommand, error) {
 			Short:   "Check hexago command stability",
 			Long:    doctorLong,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -41,53 +38,42 @@ func (c *DoctorCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *DoctorCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *DoctorCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *DoctorCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *DoctorCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	result, err := c.projectService.Doctor(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	result, err := projectService.Doctor(cmd.Context())
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: doctor: %w", err)
+
+		return fmt.Errorf("projectService.Doctor: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Info(result.OSResult, "os/arch")
-	fmt.Println("")
 
 	if result.GoResult.IsInstalled {
 		c.tuilog.Success(result.GoResult.Output, "go")
 	} else {
 		c.tuilog.Error(result.GoResult.Output, "go")
 	}
-	fmt.Println("")
 
 	if result.ImplResult.IsInstalled {
 		c.tuilog.Success("installed", "impl")
 	} else {
 		c.tuilog.Error(result.ImplResult.Output, "impl")
 	}
-	fmt.Println("")
 
 	return nil
 }

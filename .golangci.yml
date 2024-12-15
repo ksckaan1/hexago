@@ -1,0 +1,81 @@
+run:
+  timeout: 5m
+  go: "1.23.4"
+  allow-parallel-runners: true
+  allow-serial-runners: true
+  concurrency: 8
+  issues-exit-code: 0
+  tests: false
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gofumpt
+    - gosec
+    - errname
+    - gocritic
+    - wrapcheck
+    - gocognit
+    - gocyclo
+    - prealloc
+    - errorlint
+
+linters-settings:
+  errcheck:
+    check-blank: true
+    check-type-assertions: true
+  gosimple:
+    checks: ["all"]
+  govet:
+    enable-all: true
+    settings:
+      shadow:
+        strict: true
+  staticcheck:
+    checks: ["all"]
+  gofumpt:
+    extra-rules: true
+  gosec:
+    severity: low
+    confidence: low
+    config:
+      nosec: true
+      audit: true
+      show-ignored: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - opinionated
+  gocognit:
+    min-complexity: 15
+  gocyclo:
+    min-complexity: 15
+  errorlint:
+    asserts: true
+    comparison: true
+    errorf: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: '(.+)_test\.go'
+      linters:
+        - gocognit
+        - gocyclo
+        - govet
+
+output:
+  print-linter-name: true
+  print-issued-lines: true
+  sort-results: true
+  show-stats: true

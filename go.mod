@@ -5,7 +5,6 @@ go 1.23.4
 require (
 	github.com/charmbracelet/huh v0.5.2
 	github.com/charmbracelet/lipgloss v0.13.0
-	github.com/samber/do v1.6.0
 	github.com/samber/lo v1.47.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0

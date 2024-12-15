@@ -1,4 +1,4 @@
-package dto
+package model
 
 type InitNewProjectParams struct {
 	ProjectDirectory string
@@ -52,6 +52,6 @@ type DoctorResult struct {
 }
 
 type Tool struct {
-	IsInstalled bool
 	Output      string
+	IsInstalled bool
 }

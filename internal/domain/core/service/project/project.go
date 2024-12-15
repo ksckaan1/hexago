@@ -3,25 +3,22 @@ package project
 import (
 	"context"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/samber/do"
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
-var _ port.ProjectService = (*Project)(nil)
-
 type Project struct {
-	cfg port.ConfigService
+	cfg *config.Config
 }
 
-func New(i *do.Injector) (port.ProjectService, error) {
+func New(cfg *config.Config) (*Project, error) {
 	return &Project{
-		cfg: do.MustInvoke[port.ConfigService](i),
+		cfg: cfg,
 	}, nil
 }
 
-func (p *Project) InitNewProject(ctx context.Context, params dto.InitNewProjectParams) error {
+func (p *Project) InitNewProject(ctx context.Context, params model.InitNewProjectParams) error {
 	projectPath, err := p.createProjectDir(params.ProjectDirectory)
 	if err != nil {
 		return fmt.Errorf("create project dir: %w", err)

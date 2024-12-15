@@ -1,21 +1,18 @@
 package servicecmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*ServiceCommand)(nil)
 
 type ServiceCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewServiceCommand(i *do.Injector) (*ServiceCommand, error) {
+func NewServiceCommand() (*ServiceCommand, error) {
 	return &ServiceCommand{
 		cmd: &cobra.Command{
 			Use:     "service",
@@ -23,20 +20,13 @@ func NewServiceCommand(i *do.Injector) (*ServiceCommand, error) {
 			Short:   "Service processes",
 			Long:    `Service processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *ServiceCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *ServiceCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *ServiceCommand) init() {
+func (c *ServiceCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

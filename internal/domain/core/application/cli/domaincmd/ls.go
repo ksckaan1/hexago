@@ -2,20 +2,22 @@ package domaincmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*DomainLSCommand)(nil)
+
 type DomainLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine *bool
@@ -25,7 +27,7 @@ const domainLSLong = `ls command lists domains in project.
 
 Domains are located under the "internal/domain/" directory.`
 
-func NewDomainLSCommand(i *do.Injector) (*DomainLSCommand, error) {
+func NewDomainLSCommand(projectService ProjectService, tl *tuilog.TUILog) (*DomainLSCommand, error) {
 	return &DomainLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -33,8 +35,8 @@ func NewDomainLSCommand(i *do.Injector) (*DomainLSCommand, error) {
 			Short:   "List domains",
 			Long:    domainLSLong,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -43,17 +45,15 @@ func (c *DomainLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *DomainLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *DomainLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *DomainLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -61,17 +61,12 @@ func (c *DomainLSCommand) init() {
 }
 
 func (c *DomainLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
+
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	seperator := lo.Ternary(*c.flagLine, "\n", " ")

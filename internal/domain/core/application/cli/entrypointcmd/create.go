@@ -2,23 +2,25 @@ package entrypointcmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*EntryPointCreateCommand)(nil)
+
 type EntryPointCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 }
 
-func NewEntryPointCreateCommand(i *do.Injector) (*EntryPointCreateCommand, error) {
+func NewEntryPointCreateCommand(projectService ProjectService, tl *tuilog.TUILog) (*EntryPointCreateCommand, error) {
 	return &EntryPointCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -26,8 +28,8 @@ func NewEntryPointCreateCommand(i *do.Injector) (*EntryPointCreateCommand, error
 			Short:   "Create an entry point",
 			Long:    `Create an entry point`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		tuilog:         tl,
+		projectService: projectService,
 	}, nil
 }
 
@@ -36,39 +38,33 @@ func (c *EntryPointCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *EntryPointCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *EntryPointCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *EntryPointCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *EntryPointCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
 	var cmdName string
+
 	if len(args) > 0 {
 		cmdName = args[0]
 	}
 
-	err = huh.NewForm(
+	err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("What’s entry point name?").
 				Placeholder("entry-point-name").
-				Validate(projectService.ValidateEntryPointName).
+				Validate(c.projectService.ValidateEntryPointName).
 				Description("Entry point name must be kebab-case").
 				Value(&cmdName),
 		).WithShowHelp(true),
@@ -77,22 +73,20 @@ func (c *EntryPointCreateCommand) runner(cmd *cobra.Command, args []string) erro
 		return fmt.Errorf("input entry point name: %w", err)
 	}
 
-	epFile, err := projectService.CreateEntryPoint(
+	epFile, err := c.projectService.CreateEntryPoint(
 		cmd.Context(),
-		dto.CreateEntryPointParams{
+		model.CreateEntryPointParams{
 			PackageName: cmdName,
 		},
 	)
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: create entry point: %w", err)
+
+		return fmt.Errorf("projectService.CreateEntryPoint: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("Entry point created\n" + epFile)
-	fmt.Println("")
 
 	return nil
 }

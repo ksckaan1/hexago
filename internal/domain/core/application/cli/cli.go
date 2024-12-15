@@ -4,111 +4,143 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/appcmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/doctorcmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/domaincmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/entrypointcmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/infracmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/packagecmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/portcmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
-	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/treecmd"
-	"github.com/samber/do"
-	"github.com/spf13/cobra"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
-
 type CLI struct {
-	rootCmd             *RootCommand
-	initCmd             *InitCommand
-	domainCmd           *domaincmd.DomainCommand
-	domainLSCmd         *domaincmd.DomainLSCommand
-	domainCreateCmd     *domaincmd.DomainCreateCommand
-	serviceCmd          *servicecmd.ServiceCommand
-	serviceLSCmd        *servicecmd.ServiceLSCommand
-	serviceCreateCmd    *servicecmd.ServiceCreateCommand
-	portCmd             *portcmd.PortCommand
-	portLSCmd           *portcmd.PortLSCommand
-	appCmd              *appcmd.AppCommand
-	appLSCmd            *appcmd.AppLSCommand
-	appCreateCmd        *appcmd.AppCreateCommand
-	entryPointCmd       *entrypointcmd.EntryPointCommand
-	entryPointLSCmd     *entrypointcmd.EntryPointLSCommand
-	entryPointCreateCmd *entrypointcmd.EntryPointCreateCommand
-	infraCmd            *infracmd.InfraCommand
-	infraLSCmd          *infracmd.InfraLSCommand
-	infraCreateCmd      *infracmd.InfraCreateCommand
-	packageCmd          *packagecmd.PackageCommand
-	packageLSCmd        *packagecmd.PackageLSCommand
-	packageCreateCmd    *packagecmd.PackageCreateCommand
-	runnerCmd           *runnercmd.RunnerCommand
-	doctorCmd           *doctorcmd.DoctorCommand
-	treeCmd             *treecmd.TreeCommand
+	rootCmd             port.Commander
+	initCmd             port.Commander
+	domainCmd           port.Commander
+	domainLSCmd         port.Commander
+	domainCreateCmd     port.Commander
+	serviceCmd          port.Commander
+	serviceLSCmd        port.Commander
+	serviceCreateCmd    port.Commander
+	portCmd             port.Commander
+	portLSCmd           port.Commander
+	appCmd              port.Commander
+	appLSCmd            port.Commander
+	appCreateCmd        port.Commander
+	entryPointCmd       port.Commander
+	entryPointLSCmd     port.Commander
+	entryPointCreateCmd port.Commander
+	infraCmd            port.Commander
+	infraLSCmd          port.Commander
+	infraCreateCmd      port.Commander
+	packageCmd          port.Commander
+	packageLSCmd        port.Commander
+	packageCreateCmd    port.Commander
+	runnerCmd           port.Commander
+	doctorCmd           port.Commander
+	treeCmd             port.Commander
 }
 
-func New(i *do.Injector) (*CLI, error) {
+func New(
+	rootCmd port.Commander,
+	initCmd port.Commander,
+	domainCmd port.Commander,
+	domainLSCmd port.Commander,
+	domainCreateCmd port.Commander,
+	serviceCmd port.Commander,
+	serviceLSCmd port.Commander,
+	serviceCreateCmd port.Commander,
+	portCmd port.Commander,
+	portLSCmd port.Commander,
+	appCmd port.Commander,
+	appLSCmd port.Commander,
+	appCreateCmd port.Commander,
+	entryPointCmd port.Commander,
+	entryPointLSCmd port.Commander,
+	entryPointCreateCmd port.Commander,
+	infraCmd port.Commander,
+	infraLSCmd port.Commander,
+	infraCreateCmd port.Commander,
+	packageCmd port.Commander,
+	packageLSCmd port.Commander,
+	packageCreateCmd port.Commander,
+	runnerCmd port.Commander,
+	doctorCmd port.Commander,
+	treeCmd port.Commander,
+) (*CLI, error) {
 	return &CLI{
-		rootCmd:             do.MustInvoke[*RootCommand](i),
-		initCmd:             do.MustInvoke[*InitCommand](i),
-		domainCmd:           do.MustInvoke[*domaincmd.DomainCommand](i),
-		domainLSCmd:         do.MustInvoke[*domaincmd.DomainLSCommand](i),
-		domainCreateCmd:     do.MustInvoke[*domaincmd.DomainCreateCommand](i),
-		serviceCmd:          do.MustInvoke[*servicecmd.ServiceCommand](i),
-		serviceLSCmd:        do.MustInvoke[*servicecmd.ServiceLSCommand](i),
-		serviceCreateCmd:    do.MustInvoke[*servicecmd.ServiceCreateCommand](i),
-		portCmd:             do.MustInvoke[*portcmd.PortCommand](i),
-		portLSCmd:           do.MustInvoke[*portcmd.PortLSCommand](i),
-		appCmd:              do.MustInvoke[*appcmd.AppCommand](i),
-		appLSCmd:            do.MustInvoke[*appcmd.AppLSCommand](i),
-		appCreateCmd:        do.MustInvoke[*appcmd.AppCreateCommand](i),
-		entryPointCmd:       do.MustInvoke[*entrypointcmd.EntryPointCommand](i),
-		entryPointLSCmd:     do.MustInvoke[*entrypointcmd.EntryPointLSCommand](i),
-		entryPointCreateCmd: do.MustInvoke[*entrypointcmd.EntryPointCreateCommand](i),
-		infraCmd:            do.MustInvoke[*infracmd.InfraCommand](i),
-		infraLSCmd:          do.MustInvoke[*infracmd.InfraLSCommand](i),
-		infraCreateCmd:      do.MustInvoke[*infracmd.InfraCreateCommand](i),
-		packageCmd:          do.MustInvoke[*packagecmd.PackageCommand](i),
-		packageLSCmd:        do.MustInvoke[*packagecmd.PackageLSCommand](i),
-		packageCreateCmd:    do.MustInvoke[*packagecmd.PackageCreateCommand](i),
-		runnerCmd:           do.MustInvoke[*runnercmd.RunnerCommand](i),
-		doctorCmd:           do.MustInvoke[*doctorcmd.DoctorCommand](i),
-		treeCmd:             do.MustInvoke[*treecmd.TreeCommand](i),
+		rootCmd:             rootCmd,
+		initCmd:             initCmd,
+		domainCmd:           domainCmd,
+		domainLSCmd:         domainLSCmd,
+		domainCreateCmd:     domainCreateCmd,
+		serviceCmd:          serviceCmd,
+		serviceLSCmd:        serviceLSCmd,
+		serviceCreateCmd:    serviceCreateCmd,
+		portCmd:             portCmd,
+		portLSCmd:           portLSCmd,
+		appCmd:              appCmd,
+		appLSCmd:            appLSCmd,
+		appCreateCmd:        appCreateCmd,
+		entryPointCmd:       entryPointCmd,
+		entryPointLSCmd:     entryPointLSCmd,
+		entryPointCreateCmd: entryPointCreateCmd,
+		infraCmd:            infraCmd,
+		infraLSCmd:          infraLSCmd,
+		infraCreateCmd:      infraCreateCmd,
+		packageCmd:          packageCmd,
+		packageLSCmd:        packageLSCmd,
+		packageCreateCmd:    packageCreateCmd,
+		runnerCmd:           runnerCmd,
+		doctorCmd:           doctorCmd,
+		treeCmd:             treeCmd,
 	}, nil
 }
 
 func (c *CLI) Run(ctx context.Context) error {
-	c.rootCmd.AddCommand(c.initCmd)
-	c.rootCmd.AddCommand(c.domainCmd)
-	c.domainCmd.AddCommand(c.domainLSCmd)
-	c.domainCmd.AddCommand(c.domainCreateCmd)
-	c.rootCmd.AddCommand(c.serviceCmd)
-	c.serviceCmd.AddCommand(c.serviceLSCmd)
-	c.serviceCmd.AddCommand(c.serviceCreateCmd)
-	c.rootCmd.AddCommand(c.portCmd)
-	c.portCmd.AddCommand(c.portLSCmd)
-	c.rootCmd.AddCommand(c.appCmd)
-	c.appCmd.AddCommand(c.appLSCmd)
-	c.appCmd.AddCommand(c.appCreateCmd)
-	c.rootCmd.AddCommand(c.entryPointCmd)
-	c.entryPointCmd.AddCommand(c.entryPointLSCmd)
-	c.entryPointCmd.AddCommand(c.entryPointCreateCmd)
-	c.rootCmd.AddCommand(c.infraCmd)
-	c.infraCmd.AddCommand(c.infraLSCmd)
-	c.infraCmd.AddCommand(c.infraCreateCmd)
-	c.rootCmd.AddCommand(c.packageCmd)
-	c.packageCmd.AddCommand(c.packageLSCmd)
-	c.packageCmd.AddCommand(c.packageCreateCmd)
-	c.rootCmd.AddCommand(c.runnerCmd)
-	c.rootCmd.AddCommand(c.doctorCmd)
-	c.rootCmd.AddCommand(c.treeCmd)
+	// init
+	c.rootCmd.AddSubCommand(c.initCmd)
 
-	err := c.rootCmd.Execute(ctx)
+	// domain
+	c.rootCmd.AddSubCommand(c.domainCmd)
+	c.domainCmd.AddSubCommand(c.domainLSCmd)
+	c.domainCmd.AddSubCommand(c.domainCreateCmd)
+
+	// service
+	c.rootCmd.AddSubCommand(c.serviceCmd)
+	c.serviceCmd.AddSubCommand(c.serviceLSCmd)
+	c.serviceCmd.AddSubCommand(c.serviceCreateCmd)
+
+	// port
+	c.rootCmd.AddSubCommand(c.portCmd)
+	c.portCmd.AddSubCommand(c.portLSCmd)
+
+	// app
+	c.rootCmd.AddSubCommand(c.appCmd)
+	c.appCmd.AddSubCommand(c.appLSCmd)
+	c.appCmd.AddSubCommand(c.appCreateCmd)
+
+	// cmd
+	c.rootCmd.AddSubCommand(c.entryPointCmd)
+	c.entryPointCmd.AddSubCommand(c.entryPointLSCmd)
+	c.entryPointCmd.AddSubCommand(c.entryPointCreateCmd)
+
+	// infra
+	c.rootCmd.AddSubCommand(c.infraCmd)
+	c.infraCmd.AddSubCommand(c.infraLSCmd)
+	c.infraCmd.AddSubCommand(c.infraCreateCmd)
+
+	// pkg
+	c.rootCmd.AddSubCommand(c.packageCmd)
+	c.packageCmd.AddSubCommand(c.packageLSCmd)
+	c.packageCmd.AddSubCommand(c.packageCreateCmd)
+
+	// run
+	c.rootCmd.AddSubCommand(c.runnerCmd)
+
+	// doctor
+	c.rootCmd.AddSubCommand(c.doctorCmd)
+
+	// tree
+	c.rootCmd.AddSubCommand(c.treeCmd)
+
+	err := c.rootCmd.Command().ExecuteContext(ctx)
 	if err != nil {
-		return fmt.Errorf("root cmd: execute: %w", err)
+		return fmt.Errorf("rootCmd.Command().ExecuteContext: %w", err)
 	}
 	return nil
 }

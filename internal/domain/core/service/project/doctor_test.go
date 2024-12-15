@@ -7,8 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
 )
 
 func TestDoctor(t *testing.T) {

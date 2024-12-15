@@ -8,8 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllInfrastructures(_ context.Context) ([]string, error) {
@@ -45,7 +47,7 @@ func (p *Project) isInfraExist(ctx context.Context, targetInfra string) error {
 	return nil
 }
 
-func (p *Project) CreateInfrastructure(ctx context.Context, params dto.CreateInfraParams) (string, error) {
+func (p *Project) CreateInfrastructure(ctx context.Context, params model.CreateInfraParams) (string, error) {
 	if params.PackageName == "" {
 		params.PackageName = strings.ToLower(params.StructName)
 	}
@@ -62,7 +64,7 @@ func (p *Project) CreateInfrastructure(ctx context.Context, params dto.CreateInf
 
 	err = p.isInfraExist(ctx, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("is infra exist: %w", dto.ErrAlreadyExist)
+		return "", fmt.Errorf("is infra exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	infraDir := filepath.Join("internal", "infrastructure", params.PackageName)

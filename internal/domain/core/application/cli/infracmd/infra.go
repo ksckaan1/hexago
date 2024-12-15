@@ -1,21 +1,18 @@
 package infracmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*InfraCommand)(nil)
 
 type InfraCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewInfraCommand(i *do.Injector) (*InfraCommand, error) {
+func NewInfraCommand() (*InfraCommand, error) {
 	return &InfraCommand{
 		cmd: &cobra.Command{
 			Use:     "infra",
@@ -23,20 +20,13 @@ func NewInfraCommand(i *do.Injector) (*InfraCommand, error) {
 			Short:   "Infrastructure processes",
 			Long:    `Infrastructure processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *InfraCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *InfraCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *InfraCommand) init() {
+func (c *InfraCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

@@ -2,29 +2,28 @@ package config
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"os"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/model"
-	"github.com/samber/do"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
 )
 
-var _ port.ConfigService = (*Config)(nil)
-
 type Config struct {
-	store model.Config
+	store    store
+	location string
 }
 
-func New(_ *do.Injector) (port.ConfigService, error) {
-	return &Config{}, nil
+func New(location string) (*Config, error) {
+	return &Config{
+		location: location,
+	}, nil
 }
 
-func (c *Config) Load(cfgPath string) error {
-	cfgFile, err := os.Open(cfgPath)
+func (c *Config) Load() error {
+	cfgFile, err := os.Open(c.location)
 	if err != nil {
-		return fmt.Errorf("config file not found: %s", cfgPath)
+		return fmt.Errorf("config file not found: %s", c.location)
 	}
 	defer func() {
 		err = cfgFile.Close()
@@ -69,13 +68,13 @@ func (c *Config) GetPackageTemplate() string {
 	return c.store.Templates.Package
 }
 
-func (c *Config) GetRunner(runner string) (*model.Runner, error) {
+func (c *Config) GetRunner(runner string) (*Runner, error) {
 	if c.store.Runners == nil {
-		return nil, dto.ErrRunnerNotImplemented
+		return nil, customerrors.ErrRunnerNotImplemented
 	}
 	v, ok := c.store.Runners[runner]
 	if !ok {
-		return nil, dto.ErrRunnerNotImplemented
+		return nil, customerrors.ErrRunnerNotImplemented
 	}
 	return v, nil
 }
