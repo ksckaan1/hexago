@@ -96,7 +96,7 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input application name: %w", err)
 	}
 
-	pkgName, err := c.selectPkgName(c.projectService, appName)
+	pkgName, err := c.selectPkgName(appName)
 	if err != nil {
 		return fmt.Errorf("selectPkgName: %w", err)
 	}
@@ -170,7 +170,7 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (c *AppCreateCommand) selectPkgName(projectService ProjectService, instanceName string) (string, error) {
+func (c *AppCreateCommand) selectPkgName(instanceName string) (string, error) {
 	var pkgName string
 	err := huh.NewForm(
 		huh.NewGroup(
@@ -181,7 +181,7 @@ func (c *AppCreateCommand) selectPkgName(projectService ProjectService, instance
 					if s == "" {
 						return nil
 					}
-					return projectService.ValidatePkgName(s)
+					return c.projectService.ValidatePkgName(s)
 				}).
 				Description("Folder name must be lowercase").
 				Value(&pkgName),
