@@ -69,9 +69,9 @@ func (c *DomainLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(domains, seperator))
+	fmt.Println(strings.Join(domains, separator))
 
 	return nil
 }

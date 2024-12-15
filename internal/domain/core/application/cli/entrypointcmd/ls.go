@@ -65,9 +65,9 @@ func (c *EntryPointLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("projectService.GetAllEntryPoints: %w", err)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(entryPoints, seperator))
+	fmt.Println(strings.Join(entryPoints, separator))
 
 	return nil
 }

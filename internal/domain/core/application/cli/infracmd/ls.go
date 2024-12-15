@@ -65,9 +65,9 @@ func (c *InfraLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("projectService.GetAllInfrastructures: %w", err)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(infras, seperator))
+	fmt.Println(strings.Join(infras, separator))
 
 	return nil
 }

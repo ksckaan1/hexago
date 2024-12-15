@@ -137,9 +137,9 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		allApps = append(allApps, apps...)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(allApps, seperator))
+	fmt.Println(strings.Join(allApps, separator))
 
 	return nil
 }

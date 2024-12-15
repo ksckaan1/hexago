@@ -104,9 +104,9 @@ func (c *PackageLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		allPackages = append(allPackages, packages...)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(allPackages, seperator))
+	fmt.Println(strings.Join(allPackages, separator))
 
 	return nil
 }

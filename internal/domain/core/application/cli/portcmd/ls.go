@@ -65,9 +65,9 @@ func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(allPorts, seperator))
+	fmt.Println(strings.Join(allPorts, separator))
 
 	return nil
 }

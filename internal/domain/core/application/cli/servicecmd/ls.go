@@ -134,9 +134,9 @@ func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
 		allServices = append(allServices, services...)
 	}
 
-	seperator := lo.Ternary(*c.flagLine, "\n", " ")
+	separator := lo.Ternary(*c.flagLine, "\n", " ")
 
-	fmt.Println(strings.Join(allServices, seperator))
+	fmt.Println(strings.Join(allServices, separator))
 
 	return nil
 }
