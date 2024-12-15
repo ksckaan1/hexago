@@ -1,6 +1,7 @@
 package project
 
 import (
+	"fmt"
 	"io"
 	"regexp"
 )
@@ -13,7 +14,7 @@ func (d *decolorizer) Write(p []byte) (n int, err error) {
 	decolorized := rgxANSI.ReplaceAll(p, nil)
 	_, err = d.w.Write(decolorized)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("write: %w", err)
 	}
 	return len(p), nil
 }

@@ -3,29 +3,31 @@ package servicecmd
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"slices"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*ServiceLSCommand)(nil)
+
 type ServiceLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine   *bool
 	flagDomain *string
 }
 
-func NewServiceLSCommand(i *do.Injector) (*ServiceLSCommand, error) {
+func NewServiceLSCommand(projectService ProjectService, tl *tuilog.TUILog) (*ServiceLSCommand, error) {
 	return &ServiceLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -33,10 +35,8 @@ func NewServiceLSCommand(i *do.Injector) (*ServiceLSCommand, error) {
 			Short:   "List services",
 			Long:    `List services`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
-		// flags
-		flagLine: new(bool),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -45,17 +45,15 @@ func (c *ServiceLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *ServiceLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *ServiceLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *ServiceLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -64,20 +62,13 @@ func (c *ServiceLSCommand) init() {
 }
 
 func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
-	domains, err := projectService.GetAllDomains(cmd.Context())
-	if err != nil {
-		return fmt.Errorf("project service: get all domains: %w", err)
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("")
 		c.tuilog.Error("No domains found.\nA domain needs to be created first")
-		fmt.Println("")
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
@@ -109,9 +100,9 @@ func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
 			}
 		}
 	} else if *c.flagDomain != "*" && !slices.Contains(domains, *c.flagDomain) {
-		fmt.Println("")
+
 		c.tuilog.Error("Domain not found: ", *c.flagDomain)
-		fmt.Println("")
+
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
@@ -122,16 +113,16 @@ func (c *ServiceLSCommand) runner(cmd *cobra.Command, _ []string) error {
 			continue
 		}
 
-		services, err2 := projectService.GetAllServices(cmd.Context(), domains[i])
+		services, err2 := c.projectService.GetAllServices(cmd.Context(), domains[i])
 		if err2 != nil {
-			fmt.Println("")
-			if errors.Is(err2, dto.ErrDomainNotFound) {
+
+			if errors.Is(err2, customerrors.ErrDomainNotFound) {
 				c.tuilog.Error("Domain not found: " + domains[i])
 			} else {
 				c.tuilog.Error(err2.Error())
 			}
-			fmt.Println("")
-			return fmt.Errorf("project service: get all services: %w", err2)
+
+			return fmt.Errorf("projectService.GetAllServices: %w", err2)
 		}
 
 		if *c.flagDomain == "*" {

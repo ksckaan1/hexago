@@ -1,21 +1,18 @@
 package entrypointcmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*EntryPointCommand)(nil)
 
 type EntryPointCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewEntryPointCommand(i *do.Injector) (*EntryPointCommand, error) {
+func NewEntryPointCommand() (*EntryPointCommand, error) {
 	return &EntryPointCommand{
 		cmd: &cobra.Command{
 			Use:     "cmd",
@@ -23,20 +20,13 @@ func NewEntryPointCommand(i *do.Injector) (*EntryPointCommand, error) {
 			Short:   "Entry Point processes",
 			Long:    `Entry Point processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *EntryPointCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *EntryPointCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *EntryPointCommand) init() {
+func (c *EntryPointCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

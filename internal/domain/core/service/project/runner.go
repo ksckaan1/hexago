@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/config"
 )
 
 func (p *Project) Run(ctx context.Context, commandName string, envVars []string, verbose bool) error {
@@ -37,14 +37,14 @@ func (p *Project) Run(ctx context.Context, commandName string, envVars []string,
 	return nil
 }
 
-func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*model.Runner, error) {
+func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*config.Runner, error) {
 	runner, err := p.cfg.GetRunner(commandName)
 	if err == nil && runner.Cmd != "" {
 		return runner, nil
 	}
 
 	if runner == nil {
-		runner = &model.Runner{}
+		runner = &config.Runner{}
 	}
 
 	entryPoints, err := p.GetAllEntryPoints(ctx)
@@ -61,7 +61,7 @@ func (p *Project) getCommandInfo(ctx context.Context, commandName string) (*mode
 	return runner, nil
 }
 
-func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd *exec.Cmd) ([]io.Closer, error) {
+func (p *Project) prepareLogFiles(commandName string, runner *config.Runner, cmd *exec.Cmd) ([]io.Closer, error) {
 	if runner.Log.Disabled {
 		cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
 		return nil, nil
@@ -107,7 +107,7 @@ func (p *Project) prepareLogFiles(commandName string, runner *model.Runner, cmd 
 func (p *Project) createLogFile(name string, overwrite bool) (*os.File, error) {
 	filePath := filepath.Join("logs", fmt.Sprintf("%s.log", name))
 	if !overwrite {
-		logFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0644)
+		logFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0o644)
 		if err == nil {
 			return logFile, nil
 		}
@@ -119,7 +119,7 @@ func (p *Project) createLogFile(name string, overwrite bool) (*os.File, error) {
 	return logFile, nil
 }
 
-func (p *Project) runCmd(ctx context.Context, commandName string, runner *model.Runner, envs []string) error {
+func (p *Project) runCmd(ctx context.Context, commandName string, runner *config.Runner, envs []string) error {
 	term, err := p.getTerminalName()
 	if err != nil {
 		return fmt.Errorf("get terminal name: %w", err)

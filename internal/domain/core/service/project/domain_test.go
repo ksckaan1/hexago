@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestCreateDomain(t *testing.T) {
@@ -34,7 +36,7 @@ func TestCreateDomain(t *testing.T) {
 			name: "valid",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -53,7 +55,7 @@ func TestCreateDomain(t *testing.T) {
 			name: "already exist",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -66,7 +68,7 @@ func TestCreateDomain(t *testing.T) {
 			},
 			want: want{
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrAlreadyExist)
+					require.ErrorIs(tt, err, customerrors.ErrAlreadyExist)
 				},
 			},
 		},
@@ -74,7 +76,7 @@ func TestCreateDomain(t *testing.T) {
 			name: "invalid domain name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -87,7 +89,7 @@ func TestCreateDomain(t *testing.T) {
 			},
 			want: want{
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPkgName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPkgName)
 				},
 			},
 		},
@@ -100,7 +102,7 @@ func TestCreateDomain(t *testing.T) {
 			}
 			require.NoError(t, tt.in.preRun(projectService))
 
-			err := projectService.CreateDomain(tt.args.ctx(), dto.CreateDomainParams{
+			err := projectService.CreateDomain(tt.args.ctx(), model.CreateDomainParams{
 				DomainName: tt.args.domainName,
 			})
 			tt.want.err(t, err)
@@ -132,7 +134,7 @@ func TestGetAllDomains(t *testing.T) {
 				preRun: func(p *Project) error {
 					return p.InitNewProject(
 						context.Background(),
-						dto.InitNewProjectParams{
+						model.InitNewProjectParams{
 							ProjectDirectory: t.TempDir(),
 							ModuleName:       "my-project",
 						},
@@ -154,7 +156,7 @@ func TestGetAllDomains(t *testing.T) {
 					dir := t.TempDir()
 					err := p.InitNewProject(
 						context.Background(),
-						dto.InitNewProjectParams{
+						model.InitNewProjectParams{
 							ProjectDirectory: dir,
 							ModuleName:       "my-project",
 						},
@@ -180,7 +182,7 @@ func TestGetAllDomains(t *testing.T) {
 					dir := t.TempDir()
 					err := p.InitNewProject(
 						context.Background(),
-						dto.InitNewProjectParams{
+						model.InitNewProjectParams{
 							ProjectDirectory: dir,
 							ModuleName:       "my-project",
 						},
@@ -190,7 +192,7 @@ func TestGetAllDomains(t *testing.T) {
 					}
 
 					for i := range 2 {
-						err = p.CreateDomain(context.Background(), dto.CreateDomainParams{
+						err = p.CreateDomain(context.Background(), model.CreateDomainParams{
 							DomainName: fmt.Sprintf("domain%d", i),
 						})
 						if err != nil {

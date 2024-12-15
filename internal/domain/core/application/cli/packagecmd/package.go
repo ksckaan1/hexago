@@ -1,21 +1,18 @@
 package packagecmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*PackageCommand)(nil)
 
 type PackageCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewPackageCommand(i *do.Injector) (*PackageCommand, error) {
+func NewPackageCommand() (*PackageCommand, error) {
 	return &PackageCommand{
 		cmd: &cobra.Command{
 			Use:     "pkg",
@@ -23,20 +20,13 @@ func NewPackageCommand(i *do.Injector) (*PackageCommand, error) {
 			Short:   "Package processes",
 			Long:    `Package processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *PackageCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *PackageCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *PackageCommand) init() {
+func (c *PackageCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

@@ -7,11 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
-func (p *Project) Doctor(ctx context.Context) (*dto.DoctorResult, error) {
+func (p *Project) Doctor(ctx context.Context) (*model.DoctorResult, error) {
 	goCommand, err := p.isToolInstalled(ctx, "go version")
 	if err != nil {
 		return nil, fmt.Errorf("check command: %w", err)
@@ -22,17 +23,17 @@ func (p *Project) Doctor(ctx context.Context) (*dto.DoctorResult, error) {
 		return nil, fmt.Errorf("check command: %w", err)
 	}
 
-	return &dto.DoctorResult{
+	return &model.DoctorResult{
 		OSResult:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		GoResult:   goCommand,
 		ImplResult: implCommand,
 	}, nil
 }
 
-func (p *Project) isToolInstalled(ctx context.Context, command string) (dto.Tool, error) {
+func (p *Project) isToolInstalled(ctx context.Context, command string) (model.Tool, error) {
 	term, err := p.getTerminalName()
 	if err != nil {
-		return dto.Tool{}, fmt.Errorf("get terminal name: %w", err)
+		return model.Tool{}, fmt.Errorf("get terminal name: %w", err)
 	}
 
 	cmd := exec.CommandContext(ctx, term, "-c", command)
@@ -42,14 +43,14 @@ func (p *Project) isToolInstalled(ctx context.Context, command string) (dto.Tool
 
 	err = cmd.Run()
 	if err != nil {
-		return dto.Tool{
+		return model.Tool{
 			IsInstalled: false,
 			Output:      stdErr.String(),
 		}, nil
 	}
 
-	return dto.Tool{
+	return model.Tool{
 		IsInstalled: true,
-		Output:      stdOut.String(),
+		Output:      strings.TrimSpace(stdOut.String()),
 	}, nil
 }

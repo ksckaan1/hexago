@@ -1,21 +1,18 @@
 package portcmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*PortCommand)(nil)
 
 type PortCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
-func NewPortCommand(i *do.Injector) (*PortCommand, error) {
+func NewPortCommand() (*PortCommand, error) {
 	return &PortCommand{
 		cmd: &cobra.Command{
 			Use:     "port",
@@ -23,20 +20,13 @@ func NewPortCommand(i *do.Injector) (*PortCommand, error) {
 			Short:   "Port processes",
 			Long:    `Port processes`,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *PortCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *PortCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *PortCommand) init() {
+func (c *PortCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

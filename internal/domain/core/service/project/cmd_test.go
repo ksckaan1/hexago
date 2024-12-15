@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestCreateEntryPoint(t *testing.T) {
@@ -17,7 +19,7 @@ func TestCreateEntryPoint(t *testing.T) {
 	}
 	type args struct {
 		ctx    func() context.Context
-		params dto.CreateEntryPointParams
+		params model.CreateEntryPointParams
 	}
 	type want struct {
 		err         require.ErrorAssertionFunc
@@ -34,7 +36,7 @@ func TestCreateEntryPoint(t *testing.T) {
 			name: "valid 1",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -43,7 +45,7 @@ func TestCreateEntryPoint(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateEntryPointParams{
+				params: model.CreateEntryPointParams{
 					PackageName: "mycmd",
 				},
 			},
@@ -56,7 +58,7 @@ func TestCreateEntryPoint(t *testing.T) {
 			name: "already existing",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -64,7 +66,7 @@ func TestCreateEntryPoint(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					_, err = p.CreateEntryPoint(context.Background(), dto.CreateEntryPointParams{
+					_, err = p.CreateEntryPoint(context.Background(), model.CreateEntryPointParams{
 						PackageName: "mycmd",
 					})
 					return err
@@ -72,14 +74,14 @@ func TestCreateEntryPoint(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateEntryPointParams{
+				params: model.CreateEntryPointParams{
 					PackageName: "mycmd",
 				},
 			},
 			want: want{
 				cmdFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrAlreadyExist)
+					require.ErrorIs(tt, err, customerrors.ErrAlreadyExist)
 				},
 			},
 		},
@@ -87,7 +89,7 @@ func TestCreateEntryPoint(t *testing.T) {
 			name: "invalid folder name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -96,14 +98,14 @@ func TestCreateEntryPoint(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateEntryPointParams{
+				params: model.CreateEntryPointParams{
 					PackageName: "MyCmd",
 				},
 			},
 			want: want{
 				cmdFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidCmdName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidCmdName)
 				},
 			},
 		},
@@ -146,7 +148,7 @@ func TestGetAllEntryPoints(t *testing.T) {
 			name: "valid",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -156,7 +158,7 @@ func TestGetAllEntryPoints(t *testing.T) {
 					}
 
 					for i := range 3 {
-						_, err = p.CreateEntryPoint(context.Background(), dto.CreateEntryPointParams{
+						_, err = p.CreateEntryPoint(context.Background(), model.CreateEntryPointParams{
 							PackageName: fmt.Sprintf("example%d", i),
 						})
 						if err != nil {
@@ -180,7 +182,7 @@ func TestGetAllEntryPoints(t *testing.T) {
 			name: "valid empty list",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,

@@ -8,8 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllPackages(_ context.Context, showGlobal bool) ([]string, error) {
@@ -49,7 +51,7 @@ func (p *Project) isPkgExist(ctx context.Context, targetPkg string, isGlobal boo
 	return nil
 }
 
-func (p *Project) CreatePackage(ctx context.Context, params dto.CreatePackageParams) (string, error) {
+func (p *Project) CreatePackage(ctx context.Context, params model.CreatePackageParams) (string, error) {
 	if params.PackageName == "" {
 		params.PackageName = strings.ToLower(params.StructName)
 	}
@@ -66,7 +68,7 @@ func (p *Project) CreatePackage(ctx context.Context, params dto.CreatePackagePar
 
 	err = p.isPkgExist(ctx, params.PackageName, params.IsGlobal)
 	if err == nil {
-		return "", fmt.Errorf("is pkg exist: %w", dto.ErrAlreadyExist)
+		return "", fmt.Errorf("is pkg exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	packageDir := filepath.Join("internal", "pkg", params.PackageName)

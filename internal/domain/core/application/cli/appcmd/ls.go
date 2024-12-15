@@ -2,29 +2,31 @@ package appcmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 	"slices"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*AppLSCommand)(nil)
+
 type AppLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine   *bool
 	flagDomain *string
 }
 
-func NewAppLSCommand(i *do.Injector) (*AppLSCommand, error) {
+func NewAppLSCommand(projectService ProjectService, tl *tuilog.TUILog) (*AppLSCommand, error) {
 	return &AppLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -32,8 +34,8 @@ func NewAppLSCommand(i *do.Injector) (*AppLSCommand, error) {
 			Short:   "List Applications",
 			Long:    `List Applications`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -42,17 +44,15 @@ func (c *AppLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *AppLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *AppLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *AppLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -61,23 +61,18 @@ func (c *AppLSCommand) init() {
 }
 
 func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
+
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("")
+
 		c.tuilog.Error("No domains found.\nA domain needs to be created first")
-		fmt.Println("")
+
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
@@ -105,16 +100,16 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 				).WithShowHelp(true),
 			).Run()
 			if err2 != nil {
-				fmt.Println("")
+
 				c.tuilog.Error("Select a domain: " + err2.Error())
-				fmt.Println("")
+
 				return fmt.Errorf("select a domain: %w", err2)
 			}
 		}
 	} else if !slices.Contains(domains, *c.flagDomain) {
-		fmt.Println("")
+
 		c.tuilog.Error("Domain not found: " + *c.flagDomain)
-		fmt.Println("")
+
 		return fmt.Errorf("domain not found: %s", *c.flagDomain)
 	}
 
@@ -125,12 +120,12 @@ func (c *AppLSCommand) runner(cmd *cobra.Command, _ []string) error {
 			continue
 		}
 
-		apps, err2 := projectService.GetAllApplications(cmd.Context(), domains[i])
+		apps, err2 := c.projectService.GetAllApplications(cmd.Context(), domains[i])
 		if err2 != nil {
-			fmt.Println("")
+
 			c.tuilog.Error(err2.Error())
-			fmt.Println("")
-			return fmt.Errorf("project service: get all apps: %w", err2)
+
+			return fmt.Errorf("projectService.GetAllApplications: %w", err2)
 		}
 
 		if *c.flagDomain == "*" {

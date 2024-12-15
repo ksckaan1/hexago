@@ -3,24 +3,29 @@ package infracmd
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*InfraCreateCommand)(nil)
+
 type InfraCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
+	cfg            *config.Config
 }
 
-func NewInfraCreateCommand(i *do.Injector) (*InfraCreateCommand, error) {
+func NewInfraCreateCommand(projectService ProjectService, cfg *config.Config, tl *tuilog.TUILog) (*InfraCreateCommand, error) {
 	return &InfraCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -28,8 +33,9 @@ func NewInfraCreateCommand(i *do.Injector) (*InfraCreateCommand, error) {
 			Short:   "Create a infrastructure",
 			Long:    `Create a infrastructure`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		tuilog:         tl,
+		projectService: projectService,
+		cfg:            cfg,
 	}, nil
 }
 
@@ -38,39 +44,27 @@ func (c *InfraCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *InfraCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *InfraCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *InfraCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	err := c.cfg.Load()
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	cfg, err := do.Invoke[port.ConfigService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke config service: %w", err)
-	}
-
-	err = cfg.Load(".hexago/config.yaml")
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("load config: %w", err)
+
+		return fmt.Errorf("cfg.Load: %w", err)
 	}
 
 	var infraName string
@@ -84,7 +78,7 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			huh.NewInput().
 				Title("What’s infrastructure name?").
 				Placeholder("InfraName").
-				Validate(projectService.ValidateInstanceName).
+				Validate(c.projectService.ValidateInstanceName).
 				Description("Infrastructure name must be PascalCase").
 				Value(&infraName),
 		).WithShowHelp(true),
@@ -93,17 +87,17 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input infrastructure name: %w", err)
 	}
 
-	pkgName, err := c.selectPkgName(projectService, infraName)
+	pkgName, err := c.selectPkgName(infraName)
 	if err != nil {
 		return fmt.Errorf("select pkg name: %w", err)
 	}
 
-	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	allPorts, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("get all ports: %w", err)
+
+		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
 	portInfo, err := c.selectPort(allPorts, infraName)
@@ -111,9 +105,9 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("select port: %w", err)
 	}
 
-	infraFile, err := projectService.CreateInfrastructure(
+	infraFile, err := c.projectService.CreateInfrastructure(
 		cmd.Context(),
-		dto.CreateInfraParams{
+		model.CreateInfraParams{
 			StructName:      infraName,
 			PackageName:     pkgName,
 			PortParam:       portInfo.portName,
@@ -121,32 +115,30 @@ func (c *InfraCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		},
 	)
 	if err != nil {
-		fmt.Println("")
-		if errors.Is(err, dto.ErrInvalidInstanceName) {
+
+		if errors.Is(err, customerrors.ErrInvalidInstanceName) {
 			c.tuilog.Error("Infrastructure name not valid\nMust be <PascalCase>")
-		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+		} else if errors.Is(err, customerrors.ErrInvalidPkgName) {
 			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
-		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+		} else if errors.Is(err, customerrors.ErrTemplateCanNotParsed) {
 			c.tuilog.Error("Template can not parsed")
-		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+		} else if err2, ok1 := lo.ErrorsAs[customerrors.ErrTemplateCanNotExecute](err); ok1 {
 			c.tuilog.Error("Template can not execute\n" + err2.Message)
-		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+		} else if err2, ok2 := lo.ErrorsAs[customerrors.ErrFormatGoFile](err); ok2 {
 			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
 		} else {
 			c.tuilog.Error(err.Error())
 		}
-		fmt.Println("")
-		return fmt.Errorf("project service: create infrastructure: %w", err)
+
+		return fmt.Errorf("projectService.CreateInfrastructure: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("infrastructure created\n" + infraFile)
-	fmt.Println("")
 
 	return nil
 }
 
-func (c *InfraCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+func (c *InfraCreateCommand) selectPkgName(instanceName string) (string, error) {
 	var pkgName string
 	err := huh.NewForm(
 		huh.NewGroup(
@@ -157,7 +149,7 @@ func (c *InfraCreateCommand) selectPkgName(projectService port.ProjectService, i
 					if s == "" {
 						return nil
 					}
-					return projectService.ValidatePkgName(s)
+					return c.projectService.ValidatePkgName(s)
 				}).
 				Description("Folder name must be lowercase").
 				Value(&pkgName),

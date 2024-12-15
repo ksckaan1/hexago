@@ -2,25 +2,27 @@ package domaincmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*DomainCreateCommand)(nil)
+
 type DomainCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	projectService ProjectService
+	tuilog         *tuilog.TUILog
 }
 
 const newLong = `new command creates a domain under the "internal/domain/" directory.`
 
-func NewDomainCreateCommand(i *do.Injector) (*DomainCreateCommand, error) {
+func NewDomainCreateCommand(projectService ProjectService, tl *tuilog.TUILog) (*DomainCreateCommand, error) {
 	return &DomainCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -28,8 +30,8 @@ func NewDomainCreateCommand(i *do.Injector) (*DomainCreateCommand, error) {
 			Short:   "Create a domain",
 			Long:    newLong,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -38,40 +40,33 @@ func (c *DomainCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *DomainCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *DomainCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *DomainCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *DomainCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
 	var domainName string
 
 	if len(args) > 0 {
 		domainName = args[0]
 	}
 
-	err = huh.NewForm(
+	err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("What’s domain name?").
 				Placeholder("domainname").
-				Validate(projectService.ValidatePkgName).
+				Validate(c.projectService.ValidatePkgName).
 				Description("Domain name must be lowercase").
 				Value(&domainName),
 		).WithShowHelp(true),
@@ -80,22 +75,20 @@ func (c *DomainCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input domain name: %w", err)
 	}
 
-	err = projectService.CreateDomain(
+	err = c.projectService.CreateDomain(
 		cmd.Context(),
-		dto.CreateDomainParams{
+		model.CreateDomainParams{
 			DomainName: domainName,
 		},
 	)
 	if err != nil {
-		fmt.Println("")
+
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
+
+		return fmt.Errorf("projectService.CreateDomain: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("Domain created")
-	fmt.Println("")
 
 	return nil
 }

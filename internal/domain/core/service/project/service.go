@@ -8,8 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllServices(ctx context.Context, targetDomain string) ([]string, error) {
@@ -50,7 +52,7 @@ func (p *Project) isServiceExist(ctx context.Context, targetDomain, targetServic
 	return nil
 }
 
-func (p *Project) CreateService(ctx context.Context, params dto.CreateServiceParams) (string, error) {
+func (p *Project) CreateService(ctx context.Context, params model.CreateServiceParams) (string, error) {
 	err := p.ValidateInstanceName(params.StructName)
 	if err != nil {
 		return "", fmt.Errorf("validate instance name: %w", err)
@@ -72,7 +74,7 @@ func (p *Project) CreateService(ctx context.Context, params dto.CreateServicePar
 
 	err = p.isServiceExist(ctx, params.TargetDomain, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("is service exist: %w", dto.ErrAlreadyExist)
+		return "", fmt.Errorf("is service exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	serviceDir := filepath.Join("internal", "domain", params.TargetDomain, "service", params.PackageName)

@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestCreateService(t *testing.T) {
@@ -17,7 +19,7 @@ func TestCreateService(t *testing.T) {
 	}
 	type args struct {
 		ctx    func() context.Context
-		params dto.CreateServiceParams
+		params model.CreateServiceParams
 	}
 	type want struct {
 		err             require.ErrorAssertionFunc
@@ -39,7 +41,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "MyService",
 					PackageName:     "myservice",
@@ -50,7 +52,7 @@ func TestCreateService(t *testing.T) {
 			want: want{
 				serviceFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrDomainNotFound)
+					require.ErrorIs(tt, err, customerrors.ErrDomainNotFound)
 				},
 			},
 		},
@@ -58,7 +60,7 @@ func TestCreateService(t *testing.T) {
 			name: "valid 1",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -67,7 +69,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "MyService",
 					PackageName:     "myservice",
@@ -84,7 +86,7 @@ func TestCreateService(t *testing.T) {
 			name: "valid with port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -93,7 +95,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "MyService",
 					PackageName:     "myservice",
@@ -110,7 +112,7 @@ func TestCreateService(t *testing.T) {
 			name: "invalid port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -119,7 +121,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "MyService",
 					PackageName:     "myservice",
@@ -130,7 +132,7 @@ func TestCreateService(t *testing.T) {
 			want: want{
 				serviceFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPortName{PortName: "notexisting"})
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPortName{PortName: "notexisting"})
 				},
 			},
 		},
@@ -138,7 +140,7 @@ func TestCreateService(t *testing.T) {
 			name: "already existing",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -146,7 +148,7 @@ func TestCreateService(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					_, err = p.CreateService(context.Background(), dto.CreateServiceParams{
+					_, err = p.CreateService(context.Background(), model.CreateServiceParams{
 						TargetDomain: "core",
 						StructName:   "MyService",
 						PackageName:  "myservice",
@@ -156,7 +158,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain: "core",
 					StructName:   "MyService",
 					PackageName:  "myservice",
@@ -165,7 +167,7 @@ func TestCreateService(t *testing.T) {
 			want: want{
 				serviceFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrAlreadyExist)
+					require.ErrorIs(tt, err, customerrors.ErrAlreadyExist)
 				},
 			},
 		},
@@ -173,7 +175,7 @@ func TestCreateService(t *testing.T) {
 			name: "invalid instance name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -182,7 +184,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "myService",
 					PackageName:     "myservice",
@@ -193,7 +195,7 @@ func TestCreateService(t *testing.T) {
 			want: want{
 				serviceFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidInstanceName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidInstanceName)
 				},
 			},
 		},
@@ -201,7 +203,7 @@ func TestCreateService(t *testing.T) {
 			name: "invalid folder name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -210,7 +212,7 @@ func TestCreateService(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateServiceParams{
+				params: model.CreateServiceParams{
 					TargetDomain:    "core",
 					StructName:      "MyService",
 					PackageName:     "my-service",
@@ -221,7 +223,7 @@ func TestCreateService(t *testing.T) {
 			want: want{
 				serviceFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPkgName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPkgName)
 				},
 			},
 		},
@@ -273,7 +275,7 @@ func TestGetAllServices(t *testing.T) {
 			},
 			want: want{
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrDomainNotFound)
+					require.ErrorIs(tt, err, customerrors.ErrDomainNotFound)
 				},
 				services: nil,
 			},
@@ -282,7 +284,7 @@ func TestGetAllServices(t *testing.T) {
 			name: "valid",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -292,7 +294,7 @@ func TestGetAllServices(t *testing.T) {
 					}
 
 					for i := range 3 {
-						_, err = p.CreateService(context.Background(), dto.CreateServiceParams{
+						_, err = p.CreateService(context.Background(), model.CreateServiceParams{
 							TargetDomain: "core",
 							StructName:   fmt.Sprintf("Example%d", i),
 							PackageName:  fmt.Sprintf("example%d", i),
@@ -318,7 +320,7 @@ func TestGetAllServices(t *testing.T) {
 			name: "valid empty list",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,

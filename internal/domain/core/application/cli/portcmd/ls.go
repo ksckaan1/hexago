@@ -2,26 +2,28 @@ package portcmd
 
 import (
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*PortLSCommand)(nil)
+
 type PortLSCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
 
 	// flags
 	flagLine *bool
 }
 
-func NewPortLSCommand(i *do.Injector) (*PortLSCommand, error) {
+func NewPortLSCommand(prokectService ProjectService, tl *tuilog.TUILog) (*PortLSCommand, error) {
 	return &PortLSCommand{
 		cmd: &cobra.Command{
 			Use:     "ls",
@@ -29,10 +31,8 @@ func NewPortLSCommand(i *do.Injector) (*PortLSCommand, error) {
 			Short:   "List ports",
 			Long:    `List ports`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
-		// flags
-		flagLine: new(bool),
+		projectService: prokectService,
+		tuilog:         tl,
 	}, nil
 }
 
@@ -41,17 +41,15 @@ func (c *PortLSCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *PortLSCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *PortLSCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *PortLSCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
@@ -59,17 +57,12 @@ func (c *PortLSCommand) init() {
 }
 
 func (c *PortLSCommand) runner(cmd *cobra.Command, _ []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	allPorts, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
 
-	allPorts, err := projectService.GetAllPorts(cmd.Context())
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all ports: %w", err)
+
+		return fmt.Errorf("projectService.GetAllPorts: %w", err)
 	}
 
 	seperator := lo.Ternary(*c.flagLine, "\n", " ")

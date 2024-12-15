@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/samber/lo"
+
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func (p *Project) GetAllEntryPoints(_ context.Context) ([]string, error) {
-	cmdLocation := filepath.Join("cmd")
-
-	cmdCandidatePaths, err := filepath.Glob(filepath.Join(cmdLocation, "*"))
+	cmdCandidatePaths, err := filepath.Glob(filepath.Join("cmd", "*"))
 	if err != nil {
 		return nil, fmt.Errorf("filepath: glob: %w", err)
 	}
@@ -44,7 +44,7 @@ func (p *Project) isEntryPointExist(ctx context.Context, targetEntryPoint string
 	return nil
 }
 
-func (p *Project) CreateEntryPoint(ctx context.Context, params dto.CreateEntryPointParams) (string, error) {
+func (p *Project) CreateEntryPoint(ctx context.Context, params model.CreateEntryPointParams) (string, error) {
 	err := p.ValidateEntryPointName(params.PackageName)
 	if err != nil {
 		return "", fmt.Errorf("validate entry point name: %w", err)
@@ -52,7 +52,7 @@ func (p *Project) CreateEntryPoint(ctx context.Context, params dto.CreateEntryPo
 
 	err = p.isEntryPointExist(ctx, params.PackageName)
 	if err == nil {
-		return "", fmt.Errorf("is entry point exist: %w", dto.ErrAlreadyExist)
+		return "", fmt.Errorf("is entry point exist: %w", customerrors.ErrAlreadyExist)
 	}
 
 	entryPointPath := filepath.Join("cmd", params.PackageName)
@@ -69,7 +69,7 @@ func (p *Project) CreateEntryPoint(ctx context.Context, params dto.CreateEntryPo
 
 	cmdFilePath := filepath.Join(entryPointPath, "main.go")
 
-	err = os.WriteFile(cmdFilePath, cmdFile, 0o644)
+	err = os.WriteFile(cmdFilePath, cmdFile, 0o600)
 	if err != nil {
 		return "", fmt.Errorf("os: write file: %w", err)
 	}

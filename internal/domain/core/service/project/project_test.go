@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestInitNewProject(t *testing.T) {
@@ -78,7 +79,7 @@ func TestInitNewProject(t *testing.T) {
 
 			err := projectService.InitNewProject(
 				tt.args.ctx(),
-				dto.InitNewProjectParams{
+				model.InitNewProjectParams{
 					ProjectDirectory: projectDir,
 					ModuleName:       tt.args.moduleName,
 				},

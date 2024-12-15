@@ -1,23 +1,20 @@
 package domaincmd
 
 import (
-	"github.com/samber/do"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
-type Commander interface {
-	Command() *cobra.Command
-}
+var _ port.Commander = (*DomainCommand)(nil)
 
 type DomainCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
+	cmd *cobra.Command
 }
 
 const domainLong = `domain command includes sub-commands for listing and creating domains.`
 
-func NewDomainCommand(i *do.Injector) (*DomainCommand, error) {
+func NewDomainCommand() (*DomainCommand, error) {
 	return &DomainCommand{
 		cmd: &cobra.Command{
 			Use:     "domain",
@@ -25,20 +22,13 @@ func NewDomainCommand(i *do.Injector) (*DomainCommand, error) {
 			Short:   "Domain processes",
 			Long:    domainLong,
 		},
-		injector: i,
 	}, nil
 }
 
 func (c *DomainCommand) Command() *cobra.Command {
-	c.init()
 	return c.cmd
 }
 
-func (c *DomainCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
-}
-
-func (c *DomainCommand) init() {
+func (c *DomainCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }

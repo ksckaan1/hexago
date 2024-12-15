@@ -3,24 +3,29 @@ package appcmd
 import (
 	"errors"
 	"fmt"
-	"github.com/ksckaan1/hexago/internal/port"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
-	"github.com/samber/do"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
+	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
+	"github.com/ksckaan1/hexago/internal/port"
 )
 
+var _ port.Commander = (*AppCreateCommand)(nil)
+
 type AppCreateCommand struct {
-	cmd      *cobra.Command
-	injector *do.Injector
-	tuilog   *tuilog.TUILog
+	cmd            *cobra.Command
+	tuilog         *tuilog.TUILog
+	projectService ProjectService
+	cfg            *config.Config
 }
 
-func NewAppCreateCommand(i *do.Injector) (*AppCreateCommand, error) {
+func NewAppCreateCommand(projectService ProjectService, cfg *config.Config, tl *tuilog.TUILog) (*AppCreateCommand, error) {
 	return &AppCreateCommand{
 		cmd: &cobra.Command{
 			Use:     "new",
@@ -28,8 +33,9 @@ func NewAppCreateCommand(i *do.Injector) (*AppCreateCommand, error) {
 			Short:   "Create an application",
 			Long:    `Create an application`,
 		},
-		injector: i,
-		tuilog:   do.MustInvoke[*tuilog.TUILog](i),
+		projectService: projectService,
+		tuilog:         tl,
+		cfg:            cfg,
 	}, nil
 }
 
@@ -38,53 +44,35 @@ func (c *AppCreateCommand) Command() *cobra.Command {
 	return c.cmd
 }
 
-func (c *AppCreateCommand) AddCommand(cmds ...Commander) {
-	c.cmd.AddCommand(lo.Map(cmds, func(cmd Commander, _ int) *cobra.Command {
-		return cmd.Command()
-	})...)
+func (c *AppCreateCommand) AddSubCommand(cmd port.Commander) {
+	c.cmd.AddCommand(cmd.Command())
 }
 
 func (c *AppCreateCommand) init() {
 	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := c.runner(cmd, args)
 		if err != nil {
-			return dto.ErrSuppressed
+			return customerrors.ErrSuppressed
 		}
 		return nil
 	}
 }
 
 func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
-	projectService, err := do.Invoke[port.ProjectService](c.injector)
+	err := c.cfg.Load()
 	if err != nil {
-		return fmt.Errorf("invoke project service: %w", err)
-	}
-
-	cfg, err := do.Invoke[port.ConfigService](c.injector)
-	if err != nil {
-		return fmt.Errorf("invoke config service: %w", err)
-	}
-
-	err = cfg.Load(".hexago/config.yaml")
-	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("load config: %w", err)
+		return fmt.Errorf("cfg.Load: %w", err)
 	}
 
-	domains, err := projectService.GetAllDomains(cmd.Context())
+	domains, err := c.projectService.GetAllDomains(cmd.Context())
 	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
-		return fmt.Errorf("project service: get all domains: %w", err)
+		return fmt.Errorf("projectService.GetAllDomains: %w", err)
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("")
 		c.tuilog.Error("No domains found.\nA domain needs to be created first")
-		fmt.Println("")
 		return fmt.Errorf("No domains found.\nA domain needs to be created first")
 	}
 
@@ -99,7 +87,7 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			huh.NewInput().
 				Title("What’s application name?").
 				Placeholder("AppName").
-				Validate(projectService.ValidateInstanceName).
+				Validate(c.projectService.ValidateInstanceName).
 				Description("Application name must be PascalCase").
 				Value(&appName),
 		).WithShowHelp(true),
@@ -108,9 +96,9 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input application name: %w", err)
 	}
 
-	pkgName, err := c.selectPkgName(projectService, appName)
+	pkgName, err := c.selectPkgName(appName)
 	if err != nil {
-		return fmt.Errorf("select pkg name: %w", err)
+		return fmt.Errorf("selectPkgName: %w", err)
 	}
 
 	var domainName string
@@ -132,18 +120,14 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 			).WithShowHelp(true),
 		).Run()
 		if err2 != nil {
-			fmt.Println("")
 			c.tuilog.Error("Select a domain: " + err2.Error())
-			fmt.Println("")
 			return fmt.Errorf("select a domain: %w", err2)
 		}
 	}
 
-	allPorts, err := projectService.GetAllPorts(cmd.Context())
+	allPorts, err := c.projectService.GetAllPorts(cmd.Context())
 	if err != nil {
-		fmt.Println("")
 		c.tuilog.Error(err.Error())
-		fmt.Println("")
 		return fmt.Errorf("get all ports: %w", err)
 	}
 
@@ -152,9 +136,9 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("select port: %w", err)
 	}
 
-	applicationFile, err := projectService.CreateApplication(
+	applicationFile, err := c.projectService.CreateApplication(
 		cmd.Context(),
-		dto.CreateApplicationParams{
+		model.CreateApplicationParams{
 			TargetDomain:    domainName,
 			StructName:      appName,
 			PackageName:     pkgName,
@@ -163,34 +147,30 @@ func (c *AppCreateCommand) runner(cmd *cobra.Command, args []string) error {
 		},
 	)
 	if err != nil {
-		fmt.Println("")
-		if errors.Is(err, dto.ErrInvalidInstanceName) {
+		if errors.Is(err, customerrors.ErrInvalidInstanceName) {
 			c.tuilog.Error("Application name not valid\nMust be <PascalCase>")
-		} else if errors.Is(err, dto.ErrInvalidPkgName) {
+		} else if errors.Is(err, customerrors.ErrInvalidPkgName) {
 			c.tuilog.Error("Folder name not valid\nMust be <lowercase>")
-		} else if errors.Is(err, dto.ErrDomainNotFound) {
+		} else if errors.Is(err, customerrors.ErrDomainNotFound) {
 			c.tuilog.Error("Domain not found")
-		} else if errors.Is(err, dto.ErrTemplateCanNotParsed) {
+		} else if errors.Is(err, customerrors.ErrTemplateCanNotParsed) {
 			c.tuilog.Error("Template can not parsed")
-		} else if err2, ok := lo.ErrorsAs[dto.ErrTemplateCanNotExecute](err); ok {
+		} else if err2, ok1 := lo.ErrorsAs[customerrors.ErrTemplateCanNotExecute](err); ok1 {
 			c.tuilog.Error("Template can not execute\n" + err2.Message)
-		} else if err2, ok := lo.ErrorsAs[dto.ErrFormatGoFile](err); ok {
+		} else if err2, ok2 := lo.ErrorsAs[customerrors.ErrFormatGoFile](err); ok2 {
 			c.tuilog.Error("Go file doesn't formatted\n" + err2.Message)
 		} else {
 			c.tuilog.Error(err.Error())
 		}
-		fmt.Println("")
-		return fmt.Errorf("project service: create application: %w", err)
+		return fmt.Errorf("projectService.CreateApplication: %w", err)
 	}
 
-	fmt.Println("")
 	c.tuilog.Success("Application created\n" + applicationFile)
-	fmt.Println("")
 
 	return nil
 }
 
-func (c *AppCreateCommand) selectPkgName(projectService port.ProjectService, instanceName string) (string, error) {
+func (c *AppCreateCommand) selectPkgName(instanceName string) (string, error) {
 	var pkgName string
 	err := huh.NewForm(
 		huh.NewGroup(
@@ -201,7 +181,7 @@ func (c *AppCreateCommand) selectPkgName(projectService port.ProjectService, ins
 					if s == "" {
 						return nil
 					}
-					return projectService.ValidatePkgName(s)
+					return c.projectService.ValidatePkgName(s)
 				}).
 				Description("Folder name must be lowercase").
 				Value(&pkgName),

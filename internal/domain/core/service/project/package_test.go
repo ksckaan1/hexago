@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestCreatePackage(t *testing.T) {
@@ -17,7 +19,7 @@ func TestCreatePackage(t *testing.T) {
 	}
 	type args struct {
 		ctx    func() context.Context
-		params dto.CreatePackageParams
+		params model.CreatePackageParams
 	}
 	type want struct {
 		err             require.ErrorAssertionFunc
@@ -34,7 +36,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "valid internal",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -43,7 +45,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "MyPkg",
 					PackageName:     "mypkg",
 					IsGlobal:        false,
@@ -60,7 +62,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "valid global",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -69,7 +71,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "MyPkg",
 					PackageName:     "mypkg",
 					IsGlobal:        true,
@@ -86,7 +88,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "valid with port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -95,7 +97,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "MyPkg",
 					PackageName:     "mypkg",
 					PortParam:       "io.Writer",
@@ -111,7 +113,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "invalid port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -120,7 +122,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "MyPkg",
 					PackageName:     "mypkg",
 					PortParam:       "notexisting",
@@ -130,7 +132,7 @@ func TestCreatePackage(t *testing.T) {
 			want: want{
 				packageFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPortName{PortName: "notexisting"})
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPortName{PortName: "notexisting"})
 				},
 			},
 		},
@@ -138,7 +140,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "already existing",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -146,7 +148,7 @@ func TestCreatePackage(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					_, err = p.CreatePackage(context.Background(), dto.CreatePackageParams{
+					_, err = p.CreatePackage(context.Background(), model.CreatePackageParams{
 						StructName:  "MyPkg",
 						PackageName: "mypkg",
 					})
@@ -155,7 +157,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:  "MyPkg",
 					PackageName: "mypkg",
 				},
@@ -163,7 +165,7 @@ func TestCreatePackage(t *testing.T) {
 			want: want{
 				packageFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrAlreadyExist)
+					require.ErrorIs(tt, err, customerrors.ErrAlreadyExist)
 				},
 			},
 		},
@@ -171,7 +173,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "invalid instance name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -180,7 +182,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "myPkg",
 					PackageName:     "mypkg",
 					PortParam:       "",
@@ -190,7 +192,7 @@ func TestCreatePackage(t *testing.T) {
 			want: want{
 				packageFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidInstanceName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidInstanceName)
 				},
 			},
 		},
@@ -198,7 +200,7 @@ func TestCreatePackage(t *testing.T) {
 			name: "invalid folder name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -207,7 +209,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreatePackageParams{
+				params: model.CreatePackageParams{
 					StructName:      "MyPkg",
 					PackageName:     "my-pkg",
 					PortParam:       "",
@@ -217,7 +219,7 @@ func TestCreatePackage(t *testing.T) {
 			want: want{
 				packageFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPkgName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPkgName)
 				},
 			},
 		},
@@ -259,7 +261,7 @@ func TestGetAllPackages(t *testing.T) {
 			name: "valid",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -269,7 +271,7 @@ func TestGetAllPackages(t *testing.T) {
 					}
 
 					for i := range 3 {
-						_, err = p.CreatePackage(context.Background(), dto.CreatePackageParams{
+						_, err = p.CreatePackage(context.Background(), model.CreatePackageParams{
 							StructName:  fmt.Sprintf("Example%d", i),
 							PackageName: fmt.Sprintf("example%d", i),
 						})
@@ -293,7 +295,7 @@ func TestGetAllPackages(t *testing.T) {
 			name: "valid empty list",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,

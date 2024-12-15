@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestGetAllPorts(t *testing.T) {
@@ -36,7 +37,7 @@ func TestGetAllPorts(t *testing.T) {
 			in: in{
 				preRun: func(p *Project) error {
 					dir := t.TempDir()
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: dir,
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -68,7 +69,7 @@ func TestGetAllPorts(t *testing.T) {
 			name: "valid empty list",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,

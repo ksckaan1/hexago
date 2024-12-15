@@ -1,11 +1,11 @@
-package model
+package config
 
-type Config struct {
-	Templates Templates          `yaml:"templates"`
+type store struct {
 	Runners   map[string]*Runner `yaml:"runners"`
+	Templates templates          `yaml:"templates"`
 }
 
-type Templates struct {
+type templates struct {
 	Service        string `yaml:"service"`
 	Application    string `yaml:"application"`
 	Infrastructure string `yaml:"infrastructure"`
@@ -15,10 +15,10 @@ type Templates struct {
 type Runner struct {
 	Cmd     string   `yaml:"cmd"`
 	EnvVars []string `yaml:"env"`
-	Log     Log      `yaml:"log"`
+	Log     log      `yaml:"log"`
 }
 
-type Log struct {
+type log struct {
 	Disabled      bool `yaml:"disabled"`
 	SeperateFiles bool `yaml:"seperate_files"`
 	Overwrite     bool `yaml:"overwrite"`

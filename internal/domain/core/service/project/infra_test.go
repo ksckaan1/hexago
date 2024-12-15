@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksckaan1/hexago/internal/domain/core/dto"
-	"github.com/ksckaan1/hexago/internal/domain/core/service/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ksckaan1/hexago/config"
+	"github.com/ksckaan1/hexago/internal/customerrors"
+	"github.com/ksckaan1/hexago/internal/domain/core/model"
 )
 
 func TestCreateInfrastructure(t *testing.T) {
@@ -17,7 +19,7 @@ func TestCreateInfrastructure(t *testing.T) {
 	}
 	type args struct {
 		ctx    func() context.Context
-		params dto.CreateInfraParams
+		params model.CreateInfraParams
 	}
 	type want struct {
 		err           require.ErrorAssertionFunc
@@ -34,7 +36,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "valid 1",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -43,7 +45,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:      "MyInfra",
 					PackageName:     "myinfra",
 					PortParam:       "",
@@ -59,7 +61,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "valid with port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -68,7 +70,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:      "MyInfra",
 					PackageName:     "myinfra",
 					PortParam:       "io.Writer",
@@ -84,7 +86,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "invalid port",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -93,7 +95,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:      "MyApp",
 					PackageName:     "myapp",
 					PortParam:       "notexisting",
@@ -103,7 +105,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			want: want{
 				infraFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPortName{PortName: "notexisting"})
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPortName{PortName: "notexisting"})
 				},
 			},
 		},
@@ -111,7 +113,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "already existing",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -119,7 +121,7 @@ func TestCreateInfrastructure(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					_, err = p.CreateInfrastructure(context.Background(), dto.CreateInfraParams{
+					_, err = p.CreateInfrastructure(context.Background(), model.CreateInfraParams{
 						StructName:  "MyApp",
 						PackageName: "myapp",
 					})
@@ -128,7 +130,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:  "MyApp",
 					PackageName: "myapp",
 				},
@@ -136,7 +138,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			want: want{
 				infraFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrAlreadyExist)
+					require.ErrorIs(tt, err, customerrors.ErrAlreadyExist)
 				},
 			},
 		},
@@ -144,7 +146,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "invalid instance name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -153,7 +155,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:      "myApp",
 					PackageName:     "myapp",
 					PortParam:       "",
@@ -163,7 +165,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			want: want{
 				infraFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidInstanceName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidInstanceName)
 				},
 			},
 		},
@@ -171,7 +173,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			name: "invalid folder name",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -180,7 +182,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background,
-				params: dto.CreateInfraParams{
+				params: model.CreateInfraParams{
 					StructName:      "MyApp",
 					PackageName:     "my-app",
 					PortParam:       "",
@@ -190,7 +192,7 @@ func TestCreateInfrastructure(t *testing.T) {
 			want: want{
 				infraFilePath: "",
 				err: func(tt require.TestingT, err error, i ...interface{}) {
-					require.ErrorIs(tt, err, dto.ErrInvalidPkgName)
+					require.ErrorIs(tt, err, customerrors.ErrInvalidPkgName)
 				},
 			},
 		},
@@ -232,7 +234,7 @@ func TestGetAllInfrastructures(t *testing.T) {
 			name: "valid",
 			in: in{
 				preRun: func(p *Project) error {
-					err := p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					err := p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
@@ -242,7 +244,7 @@ func TestGetAllInfrastructures(t *testing.T) {
 					}
 
 					for i := range 3 {
-						_, err = p.CreateInfrastructure(context.Background(), dto.CreateInfraParams{
+						_, err = p.CreateInfrastructure(context.Background(), model.CreateInfraParams{
 							StructName:  fmt.Sprintf("Example%d", i),
 							PackageName: fmt.Sprintf("example%d", i),
 						})
@@ -266,7 +268,7 @@ func TestGetAllInfrastructures(t *testing.T) {
 			name: "valid empty list",
 			in: in{
 				preRun: func(p *Project) error {
-					return p.InitNewProject(context.Background(), dto.InitNewProjectParams{
+					return p.InitNewProject(context.Background(), model.InitNewProjectParams{
 						ProjectDirectory: t.TempDir(),
 						ModuleName:       "my-project",
 						CreateModule:     true,
