@@ -1,6 +1,6 @@
 ![Hexago](doc/hexago.png)
 
-[![release](https://img.shields.io/github/release/ksckaan1/hexago.svg)](https://github.com/ksckaan1/m2s/releases)
+[![release](https://img.shields.io/github/release/ksckaan1/hexago.svg)](https://github.com/ksckaan1/hexago/releases)
 ![Go Version](https://img.shields.io/badge/Go-1.23.4-%23007d9c)
 [![Go report](https://goreportcard.com/badge/github.com/ksckaan1/hexago)](https://goreportcard.com/report/github.com/ksckaan1/hexago)
 ![m2s](https://img.shields.io/badge/coverage-62.8%25-green?style=flat)
