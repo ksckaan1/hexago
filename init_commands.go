@@ -16,6 +16,7 @@ import (
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/rootcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/runnercmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/servicecmd"
+	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/testcmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/application/cli/treecmd"
 	"github.com/ksckaan1/hexago/internal/domain/core/service/project"
 	"github.com/ksckaan1/hexago/internal/pkg/tuilog"
@@ -159,6 +160,12 @@ func initCommands(projectService *project.Project, tl *tuilog.TUILog, cfg *confi
 		return nil, fmt.Errorf("treecmd.NewTreeCommand: %w", err)
 	}
 
+	// test
+	testCmd, err := testcmd.NewTestCommand(projectService, tl)
+	if err != nil {
+		return nil, fmt.Errorf("testcmd.NewTestCommand: %w", err)
+	}
+
 	app, err := cli.New(
 		rootCmd,
 		initCmd,
@@ -185,6 +192,7 @@ func initCommands(projectService *project.Project, tl *tuilog.TUILog, cfg *confi
 		runnerCmd,
 		doctorCmd,
 		treeCmd,
+		testCmd,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("cli.New: %w", err)

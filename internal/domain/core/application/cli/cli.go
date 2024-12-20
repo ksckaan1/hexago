@@ -33,6 +33,7 @@ type CLI struct {
 	runnerCmd           port.Commander
 	doctorCmd           port.Commander
 	treeCmd             port.Commander
+	testCmd             port.Commander
 }
 
 func New(
@@ -61,6 +62,7 @@ func New(
 	runnerCmd port.Commander,
 	doctorCmd port.Commander,
 	treeCmd port.Commander,
+	testCmd port.Commander,
 ) (*CLI, error) {
 	return &CLI{
 		rootCmd:             rootCmd,
@@ -88,6 +90,7 @@ func New(
 		runnerCmd:           runnerCmd,
 		doctorCmd:           doctorCmd,
 		treeCmd:             treeCmd,
+		testCmd:             testCmd,
 	}, nil
 }
 
@@ -138,9 +141,13 @@ func (c *CLI) Run(ctx context.Context) error {
 	// tree
 	c.rootCmd.AddSubCommand(c.treeCmd)
 
+	// test
+	c.rootCmd.AddSubCommand(c.testCmd)
+
 	err := c.rootCmd.Command().ExecuteContext(ctx)
 	if err != nil {
 		return fmt.Errorf("rootCmd.Command().ExecuteContext: %w", err)
 	}
+
 	return nil
 }

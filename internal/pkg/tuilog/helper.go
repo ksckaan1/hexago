@@ -59,3 +59,28 @@ func (*TUILog) log(lt logType, msg string, title ...string) {
 
 	fmt.Println(op)
 }
+
+func (*TUILog) logWithoutTitle(lt logType, msg string) {
+	var (
+		logColor string
+	)
+	switch lt {
+	case successType:
+		logColor = "#32CD32"
+	case warningType:
+		logColor = "#FFA500"
+	case errorType:
+		logColor = "#FF0000"
+	default:
+		logColor = "#87CEEB"
+	}
+
+	op := lipgloss.NewStyle().
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(lipgloss.Color(logColor)).
+		BorderLeft(true).
+		PaddingLeft(1).
+		Render(msg)
+
+	fmt.Println(op)
+}
