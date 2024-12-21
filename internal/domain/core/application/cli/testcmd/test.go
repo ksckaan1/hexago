@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/spf13/cobra"
 
 	"github.com/ksckaan1/hexago/internal/customerrors"
@@ -33,6 +36,15 @@ type TestCommand struct {
 
 	// state
 	moduleName string
+	showError  bool
+	startTime  time.Time
+
+	// total
+	totalMut  *sync.Mutex
+	totalRun  int
+	totalPass int
+	totalFail int
+	totalSkip int
 }
 
 func NewTestCommand(projectService ProjectService, tl *tuilog.TUILog) (*TestCommand, error) {
@@ -45,6 +57,7 @@ func NewTestCommand(projectService ProjectService, tl *tuilog.TUILog) (*TestComm
 		},
 		projectService: projectService,
 		tuilog:         tl,
+		totalMut:       new(sync.Mutex),
 	}, nil
 }
 
@@ -82,7 +95,7 @@ func (c *TestCommand) runner(cmd *cobra.Command, args []string) error {
 	moduleName, err := c.projectService.GetModuleName()
 	if err != nil {
 		c.tuilog.Error(err.Error())
-		return err
+		return fmt.Errorf("projectService.GetModuleName: %w", err)
 	}
 
 	c.moduleName = moduleName
@@ -92,46 +105,56 @@ func (c *TestCommand) runner(cmd *cobra.Command, args []string) error {
 	subCmd := exec.CommandContext(cmd.Context(), "go", cmdArgs...)
 
 	r, w := io.Pipe()
-
 	subCmd.Stdout = w
 	subCmd.Stderr = w
 
 	sc := bufio.NewScanner(r)
 
-	showErr := false
-
-	go func() {
-
-		for sc.Scan() {
-			err := sc.Err()
-			if err != nil {
-				c.tuilog.Error(err.Error())
-				break
-			}
-
-			var testAction TestAction
-			err = json.Unmarshal(sc.Bytes(), &testAction)
-			if err != nil {
-				if !showErr {
-					c.printError(sc.Text(), true)
-				} else {
-					c.printError(sc.Text(), false)
-				}
-				showErr = true
-				continue
-			}
-
-			showErr = false
-
-			c.printAction(&testAction)
-		}
-	}()
-
-	err = subCmd.Run()
+	err = subCmd.Start()
 	if err != nil {
 		return customerrors.ErrSuppressed
 	}
+
+	c.startTime = time.Now()
+
+	go func() {
+		for sc.Scan() {
+			c.parseLine(sc.Text())
+		}
+	}()
+
+	err = subCmd.Wait()
+	if err != nil {
+		c.printSummary(subCmd.ProcessState.ExitCode() == 0)
+		return fmt.Errorf("subCmd.Wait: %w", err)
+	}
+
+	c.printSummary(true)
+
 	return nil
+}
+
+func (c *TestCommand) parseLine(line string) {
+	if strings.HasPrefix(line, "no Go files in") {
+		c.showError = false
+		c.tuilog.Error(line)
+		return
+	}
+
+	var testAction TestAction
+	err := json.Unmarshal([]byte(line), &testAction)
+	if err == nil {
+		c.showError = false
+		c.printAction(&testAction)
+		return
+	}
+
+	if !c.showError {
+		c.showError = true
+		c.printError(line, true)
+	} else {
+		c.printError(line, false)
+	}
 }
 
 func (c *TestCommand) printAction(action *TestAction) {
@@ -140,7 +163,7 @@ func (c *TestCommand) printAction(action *TestAction) {
 	}
 
 	action.Package = strings.TrimPrefix(action.Package, c.moduleName+"/")
-
+	c.countAction(action.Action)
 	switch action.Action {
 	case "run":
 		if *c.flagVerbose {
@@ -148,18 +171,31 @@ func (c *TestCommand) printAction(action *TestAction) {
 		}
 	case "pass":
 		if *c.flagVerbose || c.isRootTest(action) {
-			c.printResult(action, "#FFFFFF", "#008000", " PASS ")
+			c.printResult(action, ColorWhite, ColorGreen, " PASS ")
 		}
 	case "fail":
-		c.printResult(action, "#000000", "#FF0000", " FAIL ")
+		c.printResult(action, ColorWhite, ColorRed, " FAIL ")
 	case "skip":
-		if *c.flagVerbose {
-			c.printResult(action, "#FFFFFF", "#411F89", " SKIP ")
-		}
+		c.printResult(action, ColorWhite, ColorPurple, " SKIP ")
 	case "output":
 		if *c.flagVerbose {
 			c.printOutput(action)
 		}
+	}
+}
+
+func (c *TestCommand) countAction(action string) {
+	c.totalMut.Lock()
+	defer c.totalMut.Unlock()
+	switch action {
+	case "run":
+		c.totalRun++
+	case "pass":
+		c.totalPass++
+	case "fail":
+		c.totalFail++
+	case "skip":
+		c.totalSkip++
 	}
 }
 
@@ -169,35 +205,30 @@ func (c *TestCommand) isRootTest(action *TestAction) bool {
 
 func (c *TestCommand) printRun(action *TestAction) {
 	badge := lipgloss.NewStyle().
-		Background(lipgloss.Color("#87CEEB")).
-		Foreground(lipgloss.Color("#000000")).
+		Background(lipgloss.Color(ColorBlue)).
+		Foreground(lipgloss.Color(ColorBlack)).
 		Render(" RUN  ")
 
 	pkg := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#808080")).
+		Foreground(lipgloss.Color(ColorGray)).
 		Render(action.Package)
 	test := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFFFFF")).
+		Foreground(lipgloss.Color(ColorWhite)).
 		Render(action.Test)
 
 	fmt.Printf("%s %s %s\n", badge, pkg, test)
 }
 
 func (c *TestCommand) printResult(action *TestAction, fgColor, bgColor, badgeText string) {
-	badge := lipgloss.NewStyle().
-		Background(lipgloss.Color(bgColor)).
-		Foreground(lipgloss.Color(fgColor)).
-		Render(badgeText)
-
+	badge := c.createBadge(badgeText, bgColor, fgColor)
 	pkg := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#808080")).
+		Foreground(lipgloss.Color(ColorGray)).
 		Render(action.Package)
 	test := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFFFFF")).
+		Foreground(lipgloss.Color(ColorWhite)).
 		Render(action.Test)
-
 	duration := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#808080")).
+		Foreground(lipgloss.Color(ColorGray)).
 		Render(fmt.Sprintf(" (%.2fs)", action.Elapsed))
 	fmt.Printf("%s %s %s %s\n", badge, pkg, test, duration)
 }
@@ -211,13 +242,47 @@ func (c *TestCommand) printOutput(action *TestAction) {
 }
 
 func (c *TestCommand) printError(text string, withBadge bool) {
-	title := "      "
-	if withBadge {
-		title = " ERR  "
+	if !withBadge {
+		fmt.Printf("       %s\n", text)
+		return
 	}
-	badge := lipgloss.NewStyle().
-		Background(lipgloss.Color("#FF0000")).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Render(title)
+	badge := c.createBadge(" ERR  ", ColorRed, ColorWhite)
 	fmt.Printf("%s %s\n", badge, text)
+}
+
+func (c *TestCommand) printSummary(success bool) {
+	result := lipgloss.NewStyle().Foreground(lipgloss.Color(ColorRed)).Render("TESTS FAILED")
+	if success {
+		result = lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGreen)).Render("TESTS PASSED")
+	}
+
+	rows := [][]string{
+		{lipgloss.NewStyle().Foreground(lipgloss.Color(ColorBlue)).Render("Total Run     "), strconv.Itoa(c.totalRun)},
+		{lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGreen)).Render("Total Pass"), strconv.Itoa(c.totalPass)},
+		{lipgloss.NewStyle().Foreground(lipgloss.Color(ColorRed)).Render("Total Fail"), strconv.Itoa(c.totalFail)},
+		{lipgloss.NewStyle().Foreground(lipgloss.Color(ColorPurple)).Render("Total Skip"), strconv.Itoa(c.totalSkip)},
+	}
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGray))).
+		Headers("ACTION", "COUNT").
+		Rows(rows...)
+
+	fmt.Printf("\n%s\n⌛ %.2fs\n\nTEST SUMMARY\n%s\n",
+		result,
+		time.Since(c.startTime).Seconds(),
+		t.Render(),
+	)
+}
+
+func (c *TestCommand) createBadge(text, bgColor, fgColor string) string {
+	badgeText := lipgloss.NewStyle().
+		Background(lipgloss.Color(bgColor)).
+		Foreground(lipgloss.Color(fgColor)).
+		Render(text)
+	badgeArrow := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(bgColor)).
+		Render("\uE0B0")
+	return badgeText + badgeArrow
 }
